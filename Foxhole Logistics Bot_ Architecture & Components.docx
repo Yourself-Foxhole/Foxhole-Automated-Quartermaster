@@ -1,0 +1,40 @@
+stateDiagram-v2
+    [*] --> UNCLAIMED: Task Created
+    
+    UNCLAIMED --> PENDING: User Claims Task
+    UNCLAIMED --> [*]: Task Expires/Abandoned
+    
+    PENDING --> IN_PROGRESS: User Starts Task
+    PENDING --> UNCLAIMED: Claim Timeout
+    PENDING --> UNCLAIMED: User Abandons
+    
+    IN_PROGRESS --> COMPLETE: User Completes Task
+    IN_PROGRESS --> UNCLAIMED: User Abandons
+    IN_PROGRESS --> UNCLAIMED: Task Timeout
+    
+    COMPLETE --> [*]: Task Archived
+    
+    note right of UNCLAIMED
+        - No user assigned
+        - Available for claiming
+        - Can expire if too old
+    end note
+    
+    note right of PENDING
+        - User claimed but not started
+        - Has claim timeout
+        - Reserves task for user
+    end note
+    
+    note right of IN_PROGRESS
+        - User actively working
+        - For production tasks:
+          * Has estimated completion time
+          * Can trigger notifications
+    end note
+    
+    note right of COMPLETE
+        - Task finished
+        - May trigger follow-up tasks
+        - Updates inventory state
+    end note 

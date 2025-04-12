@@ -239,54 +239,86 @@ The application follows a layered architecture pattern, separating concerns and 
 
 ## Desired State Configuration
 
-### Default Configuration by Vehicle Type
+### Building-Based Stockpile Configuration
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                Vehicle-Based Defaults                    │
+│                Building Type Defaults                    │
 ├─────────────────────────────────────────────────────────┤
-│ Vehicle Type: Tank                                      │
-│ ├── Critical Threshold: 5                               │
-│ ├── Low Threshold: 10                                   │
-│ ├── Normal Range: 10-20                                 │
-│ ├── Oversupply Threshold: 20                            │
-│ ├── Buffer Size: 3                                      │
-│ └── Priority Score: 9                                   │
+│ Building: Bunker Base / Front Line Base                 │
+│ ├── Critical Threshold: 1000                            │
+│ ├── Low Threshold: 2000                                 │
+│ ├── Normal Range: 2000-5000                             │
+│ ├── Oversupply Threshold: 5000                          │
+│ ├── Buffer Size: 500                                    │
+│ └── Priority Score: 10                                  │
 │                                                         │
-│ Vehicle Type: Truck                                     │
-│ ├── Critical Threshold: 10                              │
-│ ├── Low Threshold: 20                                   │
-│ ├── Normal Range: 20-40                                 │
-│ ├── Oversupply Threshold: 40                            │
-│ ├── Buffer Size: 5                                      │
+│ Building: Logistics Building                            │
+│ ├── Critical Threshold: 5000                            │
+│ ├── Low Threshold: 10000                                │
+│ ├── Normal Range: 10000-20000                           │
+│ ├── Oversupply Threshold: 20000                         │
+│ ├── Buffer Size: 2000                                   │
+│ └── Priority Score: 8                                   │
+│                                                         │
+│ Building: Production Building                           │
+│ ├── Critical Threshold: 2000                            │
+│ ├── Low Threshold: 5000                                 │
+│ ├── Normal Range: 5000-10000                            │
+│ ├── Oversupply Threshold: 10000                         │
+│ ├── Buffer Size: 1000                                   │
 │ └── Priority Score: 7                                   │
 └─────────────────────────────────────────────────────────┘
 ```
+
+### Building Types and Roles
+
+1. **Bunker Bases / Front Line Bases**
+   - Primary combat support locations
+   - Highest priority for critical supplies
+   - Smaller storage capacity
+   - Focus on combat essentials
+   - High priority score for task generation
+
+2. **Logistics Buildings**
+   - Seaports and Storage Depots
+   - Large storage capacity
+   - Regional distribution hubs
+   - Medium priority score
+   - Focus on bulk storage
+
+3. **Production Buildings**
+   - Factories
+   - Mass Production Factories
+   - Facilities
+   - Production-focused storage
+   - Lower priority score
+   - Focus on production materials
 
 ### Location-Specific Overrides
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                Location Override Example                 │
 ├─────────────────────────────────────────────────────────┤
-│ Location: Frontline Bunker                              │
-│ Item: Heavy Tank                                        │
-│ ├── Critical Threshold: 10 (Override: +5)               │
-│ ├── Low Threshold: 15 (Override: +5)                    │
-│ ├── Normal Range: 15-25 (Override: +5)                  │
-│ ├── Oversupply Threshold: 25 (Override: +5)             │
-│ ├── Buffer Size: 5 (Override: +2)                       │
-│ └── Priority Score: 10 (Override: +1)                   │
+│ Location: Frontline Bunker Base                         │
+│ Building Type: Bunker Base                              │
+│ ├── Critical Threshold: 1500 (Override: +500)           │
+│ ├── Low Threshold: 2500 (Override: +500)                │
+│ ├── Normal Range: 2500-6000 (Override: +1000)           │
+│ ├── Oversupply Threshold: 6000 (Override: +1000)        │
+│ ├── Buffer Size: 750 (Override: +250)                   │
+│ └── Priority Score: 10 (Override: +0)                   │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ### Configuration Management
 1. **Default Settings**
-   - Based on vehicle type and role
+   - Based on building type and role
    - Configured at system level
    - Can be modified by administrators
    - Used as base for all locations
 
 2. **Location Overrides**
-   - Inherit from vehicle defaults
+   - Inherit from building type defaults
    - Can modify any threshold
    - Supports additive or absolute changes
    - Maintains override history
@@ -303,11 +335,11 @@ The application follows a layered architecture pattern, separating concerns and 
 
 1. **Gap Analysis**
    ```
-   For each item at each location:
+   For each item at each building:
    ├── Calculate Current State
-   │   └── Actual Quantity - Reserved Amount
+   │   └── Actual Stockpile Quantity - Reserved Amount
    ├── Determine Desired State
-   │   ├── Get Vehicle Default
+   │   ├── Get Building Type Default
    │   └── Apply Location Override
    ├── Calculate Gap
    │   └── Desired State - Current State
@@ -381,14 +413,14 @@ The application follows a layered architecture pattern, separating concerns and 
 ### Configuration Interface
 ```
 /configure
-├── vehicle <vehicle_type>
+├── building <building_type>
 │   ├── set critical <value>
 │   ├── set low <value>
 │   ├── set normal <min> <max>
 │   ├── set oversupply <value>
 │   ├── set buffer <value>
 │   └── set priority <score>
-└── location <location_name> <vehicle_type>
+└── location <location_name> <building_type>
     ├── override critical <value>
     ├── override low <value>
     ├── override normal <min> <max>
