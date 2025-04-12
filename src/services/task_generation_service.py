@@ -54,7 +54,6 @@ class TaskGenerationService:
             "Mass Production Factory": 0.8,  # 80% buffer for MPFs
             "Small Assembly Plant": 0.6,  # 60% buffer for SAPs
             "Large Assembly Plant": 0.7,  # 70% buffer for LAPs
-            "Advanced Assembly Plant": 0.8,  # 80% buffer for AAPs
             "Default": 0.5  # 50% default buffer
         }
     
