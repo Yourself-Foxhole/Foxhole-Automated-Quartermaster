@@ -1,11 +1,11 @@
 """
-Task generation service module for automatically creating tasks based on inventory levels.
+Task generation service module for handling task generation logic.
 
-This module provides the TaskGenerationService class which:
-- Monitors inventory levels across locations
-- Generates tasks based on deficits and item importance
-- Calculates task priorities based on multiple factors
-- Creates appropriate tasks for different types of deficits
+This module provides the TaskGenerationService class which manages:
+- Task generation based on inventory levels
+- Priority calculation
+- Task type determination
+- Source location finding
 """
 
 import logging
@@ -17,10 +17,20 @@ from sqlalchemy import select, and_, or_, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.database_manager import DatabaseManager
-from src.models.task import Task, TaskType, TaskStatus
+from src.models.task import Task, TaskType, TaskStatus, TaskPriority
 from src.models.inventory import Inventory
 from src.models.item import Item
 from src.models.location import Location
+from src.config.priority_config import (
+    get_location_priority,
+    get_item_priority,
+    get_deficit_multiplier,
+    get_time_multiplier,
+    round_to_capacity,
+    get_truck_capacity,
+    get_available_truck_types,
+    PRIORITY_MULTIPLIERS
+)
 from src.services.task_service import TaskService
 
 logger = logging.getLogger(__name__)
@@ -38,8 +48,9 @@ class TaskGenerationService:
         self.database_manager = database_manager
         self.task_service = task_service
         self.check_interval = timedelta(minutes=15)  # Check inventory every 15 minutes
-        self.min_deficit_threshold = 0.2  # 20% deficit threshold for task generation
+        self.min_deficit_threshold = 0.9  # 90% deficit minimum to generate task
         self.critical_deficit_threshold = 0.5  # 50% deficit threshold for critical tasks
+        self.default_truck_type = "standard"  # Default truck type for FTL calculations
         
         # Default buffer levels for different building types
         self.building_buffer_levels = {
@@ -57,18 +68,30 @@ class TaskGenerationService:
             "Default": 0.5  # 50% default buffer
         }
     
+    def set_default_truck_type(self, truck_type: str):
+        """Set the default truck type for FTL calculations.
+        
+        Args:
+            truck_type: The truck type to use as default
+        """
+        if truck_type.lower() in get_available_truck_types():
+            self.default_truck_type = truck_type.lower()
+        else:
+            logger.warning(f"Invalid truck type: {truck_type}. Using standard truck.")
+            self.default_truck_type = "standard"
+    
     async def start_monitoring(self):
         """Start monitoring inventory levels and generating tasks."""
         logger.info("Starting inventory monitoring for task generation")
         while True:
             try:
-                await self.check_inventory_and_generate_tasks()
+                await self._check_inventory_levels()
             except Exception as e:
                 logger.error(f"Error in inventory monitoring: {e}")
             
             await asyncio.sleep(self.check_interval.total_seconds())
     
-    async def check_inventory_and_generate_tasks(self):
+    async def _check_inventory_levels(self):
         """Check inventory levels and generate tasks as needed."""
         logger.info("Checking inventory levels for task generation")
         
@@ -108,12 +131,18 @@ class TaskGenerationService:
                     if deficit_percentage < self.min_deficit_threshold:
                         continue
                     
-                    # Determine task priority based on item importance and deficit
-                    priority = self._calculate_task_priority(item, deficit_percentage)
+                    # Calculate task priority components
+                    base_priority = get_item_priority(item.category)
+                    deficit_severity_bonus = int(base_priority * get_deficit_multiplier(deficit_percentage))
+                    location_importance_bonus = int(base_priority * PRIORITY_MULTIPLIERS["location"])
                     
-                    # Skip if priority is too low (optional tasks)
-                    if priority < 3:
-                        continue
+                    # Round quantity to appropriate capacity
+                    quantity = round_to_capacity(target_quantity - current_quantity, self.default_truck_type)
+                    
+                    # Determine if this is an FTL or FCL
+                    truck_capacity = get_truck_capacity(self.default_truck_type)
+                    is_ftl = quantity == truck_capacity  # Exact FTL capacity for current truck type
+                    is_fcl = quantity == 60 and not is_ftl  # Exact FCL capacity
                     
                     # Determine task type based on item and location
                     task_type = self._determine_task_type(item, location)
@@ -126,12 +155,16 @@ class TaskGenerationService:
                         continue
                     
                     # Create task description
-                    description = self._create_task_description(item, location, source_location, current_quantity, target_quantity)
+                    description = self._create_task_description(
+                        item, location, source_location,
+                        current_quantity, target_quantity,
+                        self.default_truck_type if is_ftl else None
+                    )
                     
                     # Create the task
                     await self.task_service.create_task(
                         item_name=item.name,
-                        item_quantity=target_quantity - current_quantity,
+                        item_quantity=quantity,
                         item_category=item.category,
                         source_location=source_location.name,
                         source_building=source_location.building_type,
@@ -140,189 +173,76 @@ class TaskGenerationService:
                         task_type=task_type,
                         description=description,
                         notes=f"Auto-generated task based on inventory deficit ({int(deficit_percentage * 100)}% deficit)",
-                        estimated_time=self._estimate_task_time(item, target_quantity - current_quantity),
-                        priority=priority
+                        estimated_time=self._estimate_task_time(item, quantity),
+                        base_priority=base_priority,
+                        deficit_severity_bonus=deficit_severity_bonus,
+                        location_importance_bonus=location_importance_bonus,
+                        is_ftl=is_ftl,
+                        is_fcl=is_fcl
                     )
-    
-    def _calculate_task_priority(self, item: Item, deficit_percentage: float) -> int:
-        """Calculate task priority based on item importance and deficit.
-        
-        Args:
-            item: The item to calculate priority for
-            deficit_percentage: The percentage deficit (0-1)
-            
-        Returns:
-            Priority value (1-10)
-        """
-        # Base priority on item importance (1-5)
-        base_priority = item.importance
-        
-        # Adjust based on deficit percentage
-        deficit_factor = 1.0
-        if deficit_percentage >= self.critical_deficit_threshold:
-            deficit_factor = 2.0  # Double priority for critical deficits
-        elif deficit_percentage >= 0.3:
-            deficit_factor = 1.5  # 50% boost for significant deficits
-        
-        # Calculate final priority (1-10)
-        priority = int(base_priority * deficit_factor)
-        
-        # Ensure priority is within valid range
-        return max(1, min(10, priority))
     
     def _determine_task_type(self, item: Item, location: Location) -> TaskType:
-        """Determine the task type based on item and location.
-        
-        Args:
-            item: The item
-            location: The destination location
-            
-        Returns:
-            The task type
-        """
-        # If the location is a production facility and the item can be produced there
-        if location.building_type in ["Factory", "Refinery", "Mass Production Factory", 
-                                     "Small Assembly Plant", "Large Assembly Plant", "Advanced Assembly Plant"]:
-            if item.can_be_produced:
-                return TaskType.PRODUCTION
-        
-        # Default to transport
-        return TaskType.TRANSPORT
+        """Determine the appropriate task type based on item and location."""
+        if location.building_type in ["FACTORY", "MPF"]:
+            return TaskType.QUEUE_PRODUCTION
+        elif location.building_type in ["BUNKER_BASE", "FOB"]:
+            return TaskType.TRANSPORT_LAST_MILE
+        else:
+            return TaskType.TRANSPORT
     
     async def _find_source_location(self, session: AsyncSession, item: Item, destination: Location) -> Optional[Location]:
-        """Find a suitable source location for an item.
-        
-        Args:
-            session: The database session
-            item: The item to find a source for
-            destination: The destination location
-            
-        Returns:
-            A suitable source location, or None if none found
-        """
-        # First, try to find locations with surplus of this item
-        inventory_result = await session.execute(
-            select(Inventory, Location)
-            .join(Location, Inventory.location_id == Location.id)
-            .where(
-                and_(
-                    Inventory.item_id == item.id,
-                    Inventory.quantity > Inventory.target_quantity * 1.1,  # 10% surplus
-                    Location.id != destination.id  # Not the destination
-                )
-            )
-            .order_by(desc(Inventory.quantity - Inventory.target_quantity))
+        """Find the best source location for an item."""
+        # Get all locations that can produce this item
+        query = select(Location).where(
+            Location.building_type.in_(["FACTORY", "MPF", "STORAGE_DEPOT", "SEAPORT"])
         )
+        result = await session.execute(query)
+        potential_sources = result.scalars().all()
         
-        source_candidates = inventory_result.all()
+        if not potential_sources:
+            return None
         
-        if source_candidates:
-            # Return the location with the highest surplus
-            return source_candidates[0][1]
-        
-        # If no surplus found, look for locations that can produce this item
-        if item.can_be_produced:
-            production_locations_result = await session.execute(
-                select(Location)
-                .where(
-                    and_(
-                        Location.building_type.in_([
-                            "Factory", "Refinery", "Mass Production Factory",
-                            "Small Assembly Plant", "Large Assembly Plant", "Advanced Assembly Plant"
-                        ]),
-                        Location.id != destination.id
-                    )
-                )
-            )
-            
-            production_locations = production_locations_result.scalars().all()
-            
-            if production_locations:
-                # Return the closest production facility
-                # For simplicity, just return the first one
-                return production_locations[0]
-        
-        # If still no source found, look for any location with this item
-        any_inventory_result = await session.execute(
-            select(Inventory, Location)
-            .join(Location, Inventory.location_id == Location.id)
-            .where(
-                and_(
-                    Inventory.item_id == item.id,
-                    Inventory.quantity > 0,
-                    Location.id != destination.id
-                )
-            )
-            .order_by(desc(Inventory.quantity))
-        )
-        
-        any_candidates = any_inventory_result.all()
-        
-        if any_candidates:
-            return any_candidates[0][1]
-        
-        # No source found
-        return None
+        # TODO: Implement more sophisticated source selection logic
+        # For now, just return the first potential source
+        return potential_sources[0]
     
-    def _create_task_description(self, item: Item, destination: Location, source: Location, 
-                                 current_quantity: int, target_quantity: int) -> str:
-        """Create a task description.
+    def _create_task_description(
+        self,
+        item: Item,
+        destination: Location,
+        source: Location,
+        current_quantity: int,
+        target_quantity: int,
+        truck_type: Optional[str] = None
+    ) -> str:
+        """Create a description for the task."""
+        deficit = target_quantity - current_quantity
+        description = f"Transport {deficit} {item.name} from {source.name} to {destination.name}. "
+        description += f"Current stock: {current_quantity}, Target: {target_quantity}"
         
-        Args:
-            item: The item
-            destination: The destination location
-            source: The source location
-            current_quantity: Current quantity at destination
-            target_quantity: Target quantity at destination
-            
-        Returns:
-            A task description
-        """
-        quantity_needed = target_quantity - current_quantity
+        if truck_type:
+            description += f" (Requires {truck_type.title()} truck)"
         
-        if source.building_type in ["Factory", "Refinery", "Mass Production Factory", 
-                                   "Small Assembly Plant", "Large Assembly Plant", "Advanced Assembly Plant"]:
-            return f"Produce {quantity_needed} {item.name} at {source.name} and transport to {destination.name}"
-        else:
-            return f"Transport {quantity_needed} {item.name} from {source.name} to {destination.name}"
+        return description
     
     def _estimate_task_time(self, item: Item, quantity: int) -> int:
-        """Estimate the time needed to complete a task in minutes.
+        """Estimate the time required to complete the task in minutes."""
+        # Base time for any task
+        base_time = 30
         
-        Args:
-            item: The item
-            quantity: The quantity needed
-            
-        Returns:
-            Estimated time in minutes
-        """
-        # Base time per item (in minutes)
-        base_time_per_item = 1
+        # Add time based on quantity
+        quantity_time = (quantity // 15) * 10  # 10 minutes per truck load
         
-        # Adjust based on item category
-        category_multipliers = {
-            "Ammunition": 1.2,
-            "Medical": 1.5,
-            "Supplies": 1.0,
-            "Resources": 1.3,
-            "Vehicles": 2.0,
-            "Weapons": 1.8,
-            "Default": 1.0
-        }
+        # Add time based on item category
+        category_time = {
+            "CRITICAL": 0,
+            "COMBAT": 5,
+            "SUPPORT": 10,
+            "LOGISTICS": 15,
+            "OPTIONAL": 20
+        }.get(item.category, 15)
         
-        multiplier = category_multipliers.get(item.category, category_multipliers["Default"])
-        
-        # Calculate base time
-        base_time = quantity * base_time_per_item * multiplier
-        
-        # Add overhead time
-        overhead_time = 15  # 15 minutes overhead
-        
-        # Calculate total time
-        total_time = base_time + overhead_time
-        
-        # Ensure minimum time of 30 minutes
-        return max(30, int(total_time))
+        return base_time + quantity_time + category_time
     
     async def get_inventory_status(self, location_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get the current inventory status for all locations or a specific location.
