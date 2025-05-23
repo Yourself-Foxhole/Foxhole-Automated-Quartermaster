@@ -1,22 +1,22 @@
 # Discord
-discord.py==2.3.2
+discord.py==2.5.2
 
 # Database
-SQLAlchemy==2.0.23
-aiosqlite==0.19.0
-alembic==1.12.1
+SQLAlchemy==2.0.40
+aiosqlite==0.21.0
+alembic==1.15.2
 
 # Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-cov==4.1.0
+pytest==8.3.5
+pytest-asyncio==0.26.0
+pytest-cov==6.1.1
 
 # Utilities
-python-dotenv==1.0.0
-loguru==0.7.2
-APScheduler==3.10.4
+python-dotenv==1.1.0
+loguru==0.7.3
+APScheduler==3.11
 
 # Type checking
-mypy==1.7.0
-types-python-dateutil==2.8.19.14
+mypy==1.15.0
+types-python-dateutil>=2.9.0
 sqlalchemy-stubs==0.4 

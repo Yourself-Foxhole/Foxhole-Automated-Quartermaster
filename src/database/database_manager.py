@@ -14,7 +14,7 @@ from src.database.models import Base
 
 class DatabaseManager:
     """
-    Manages database operations for the Foxhole Logistics Bot.
+    Manages database operations for the Foxhole Automated Quartermaster (FAQ).
     """
 
     def __init__(self):

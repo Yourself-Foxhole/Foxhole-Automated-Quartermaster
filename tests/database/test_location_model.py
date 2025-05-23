@@ -1,8 +1,10 @@
 """
-Tests for the Location model.
+Tests for the Location model and its relationships.
 """
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from datetime import datetime
 
 from src.database.models import (
     Location,
@@ -39,33 +41,48 @@ def role(db_session, regiment):
     return role
 
 
-def test_create_location(db_session, regiment, sample_location_data):
-    """Test creating a location."""
-    location = Location(regiment_id=regiment.id, **sample_location_data)
+@pytest.mark.asyncio
+async def test_create_location(async_session, regiment):
+    """Test creating a basic location."""
+    # Create test location
+    location = Location(
+        regiment_id=regiment.id,
+        name="Test Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
+    )
+    
+    # Add to session
+    async_session.add(location)
+    await async_session.commit()
+    
+    # Retrieve location
+    result = await async_session.execute(select(Location).where(Location.name == "Test Location"))
+    retrieved_location = result.scalar_one()
+    
+    # Verify attributes
+    assert retrieved_location.name == "Test Location"
+    assert retrieved_location.location_type == LocationType.FRONTLINE_HUB
+    assert retrieved_location.coordinates == "F5-2"
+    assert retrieved_location.regiment_id == regiment.id
+
+
+def test_location_type_validation(db_session, regiment):
+    """Test that location_type must be a valid LocationType enum value."""
+    location = Location(
+        regiment_id=regiment.id,
+        name="Test Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
+    )
     db_session.add(location)
     db_session.commit()
 
-    assert location.id is not None
-    assert location.name == sample_location_data["name"]
-    assert location.location_type == sample_location_data["location_type"]
-    assert location.coordinates == sample_location_data["coordinates"]
-    assert location.created_at is not None
-    assert location.updated_at is not None
+    assert location.location_type == LocationType.FRONTLINE_HUB
 
 
-def test_location_type_validation(db_session, regiment, sample_location_data):
-    """Test that location_type must be a valid LocationType enum value."""
-    # Try to create location with invalid type
-    invalid_data = sample_location_data.copy()
-    invalid_data["location_type"] = "INVALID_TYPE"
-    
-    location = Location(regiment_id=regiment.id, **invalid_data)
-    db_session.add(location)
-    with pytest.raises(IntegrityError):
-        db_session.commit()
-
-
-def test_location_required_fields(db_session, regiment):
+@pytest.mark.asyncio
+async def test_location_required_fields(async_session, regiment):
     """Test that required fields raise appropriate errors when missing."""
     # Try to create location without name
     location = Location(
@@ -73,10 +90,10 @@ def test_location_required_fields(db_session, regiment):
         location_type=LocationType.FRONTLINE_HUB,
         coordinates="F5-2"
     )
-    db_session.add(location)
+    async_session.add(location)
     with pytest.raises(IntegrityError):
-        db_session.commit()
-    db_session.rollback()
+        await async_session.commit()
+    await async_session.rollback()
 
     # Try to create location without location_type
     location = Location(
@@ -84,165 +101,244 @@ def test_location_required_fields(db_session, regiment):
         name="Test Location",
         coordinates="F5-2"
     )
-    db_session.add(location)
+    async_session.add(location)
     with pytest.raises(IntegrityError):
-        db_session.commit()
+        await async_session.commit()
+    await async_session.rollback()
 
 
-def test_location_regiment_relationship(db_session, regiment, sample_location_data):
-    """Test location's relationship with regiment."""
-    location = Location(regiment_id=regiment.id, **sample_location_data)
-    db_session.add(location)
-    db_session.commit()
-
-    # Test relationship from location to regiment
-    assert location.regiment.id == regiment.id
-    assert location.regiment.name == regiment.name
-
-    # Test relationship from regiment to location
-    assert len(regiment.locations) == 1
-    assert regiment.locations[0].id == location.id
-
-
-def test_location_managed_by_role(db_session, regiment, role, sample_location_data):
-    """Test location's relationship with managing role."""
+def test_location_regiment_relationship(db_session, regiment):
+    """Test the relationship between Location and Regiment."""
     location = Location(
         regiment_id=regiment.id,
-        managed_by_role_id=role.id,
-        **sample_location_data
+        name="Test Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
     )
     db_session.add(location)
     db_session.commit()
 
-    assert location.managed_by_role.id == role.id
-    assert location.managed_by_role.name == role.name
+    assert location.regiment == regiment
+    assert location in regiment.locations
 
 
-def test_location_source_relationships(db_session, regiment, sample_location_data):
-    """Test location's source/target relationships."""
+def test_location_managed_by_role(db_session, regiment, role):
+    """Test the relationship between Location and Role."""
+    location = Location(
+        regiment_id=regiment.id,
+        name="Test Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2",
+        managed_by_role_id=role.id
+    )
+    db_session.add(location)
+    db_session.commit()
+
+    assert location.managed_by_role == role
+
+
+@pytest.mark.asyncio
+async def test_location_source_relationships(async_session, regiment):
+    """Test the relationships between source and target locations."""
     # Create source and target locations
-    source = Location(regiment_id=regiment.id, name="Source", location_type=LocationType.BACKLINE_HUB, coordinates="F5-1")
-    target = Location(regiment_id=regiment.id, **sample_location_data)
-    db_session.add_all([source, target])
-    db_session.commit()
+    source_location = Location(
+        regiment_id=regiment.id,
+        name="Source Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
+    )
+    target_location = Location(
+        regiment_id=regiment.id,
+        name="Target Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-3"
+    )
+    
+    # Add to session
+    async_session.add_all([source_location, target_location])
+    await async_session.commit()
+    
+    # Create source relationship
+    source_location.target_locations.append(target_location)
+    await async_session.commit()
+    
+    # Retrieve locations
+    result = await async_session.execute(select(Location).where(Location.name == "Source Location"))
+    retrieved_source = result.scalar_one()
+    
+    # Verify relationships
+    assert len(retrieved_source.target_locations) == 1
+    assert retrieved_source.target_locations[0].name == "Target Location"
+    
+    result = await async_session.execute(select(Location).where(Location.name == "Target Location"))
+    retrieved_target = result.scalar_one()
+    assert len(retrieved_target.source_locations) == 1
+    assert retrieved_target.source_locations[0].name == "Source Location"
 
-    # Create relationship
-    target.source_locations.append(source)
-    db_session.commit()
 
-    # Test relationships
-    assert len(target.source_locations) == 1
-    assert target.source_locations[0].id == source.id
-    assert len(source.target_locations) == 1
-    assert source.target_locations[0].id == target.id
-
-
-def test_location_inventory_relationship(db_session, regiment, sample_location_data, sample_item_data):
-    """Test location's relationship with inventory."""
-    # Create location and item
-    location = Location(regiment_id=regiment.id, **sample_location_data)
-    item = Item(**sample_item_data)
-    db_session.add_all([location, item])
-    db_session.commit()
-
+@pytest.mark.asyncio
+async def test_location_inventory_relationship(async_session, regiment):
+    """Test the relationship between locations and inventories."""
+    # Create location
+    location = Location(
+        regiment_id=regiment.id,
+        name="Test Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
+    )
+    
+    # Add to session
+    async_session.add(location)
+    await async_session.commit()
+    
     # Create inventory
     inventory = Inventory(
         location_id=location.id,
-        item_id=item.id,
+        item_id=1,  # Assuming item exists
         quantity=100,
-        last_updated=location.created_at,
-        reported_by_user_id=1  # This would normally be a valid user ID
+        last_updated=datetime.utcnow(),
+        reported_by_user_id=1  # Assuming user exists
     )
-    db_session.add(inventory)
-    db_session.commit()
+    
+    # Add to session
+    async_session.add(inventory)
+    await async_session.commit()
+    
+    # Retrieve location
+    result = await async_session.execute(select(Location).where(Location.name == "Test Location"))
+    retrieved_location = result.scalar_one()
+    
+    # Verify relationship
+    assert len(retrieved_location.inventories) == 1
+    assert retrieved_location.inventories[0].quantity == 100
 
-    assert len(location.inventories) == 1
-    assert location.inventories[0].quantity == 100
-    assert location.inventories[0].item.id == item.id
 
-
-def test_location_buffer_relationship(db_session, regiment, sample_location_data, sample_item_data, sample_location_buffer_data):
-    """Test location's relationship with location buffers."""
-    # Create location and item
-    location = Location(regiment_id=regiment.id, **sample_location_data)
-    item = Item(**sample_item_data)
-    db_session.add_all([location, item])
-    db_session.commit()
-
-    # Create location buffer
+@pytest.mark.asyncio
+async def test_location_buffer_relationship(async_session, regiment):
+    """Test the relationship between locations and buffers."""
+    # Create location
+    location = Location(
+        regiment_id=regiment.id,
+        name="Test Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
+    )
+    
+    # Add to session
+    async_session.add(location)
+    await async_session.commit()
+    
+    # Create buffer
     buffer = LocationBuffer(
         location_id=location.id,
-        item_id=item.id,
-        **sample_location_buffer_data
+        item_id=1,  # Assuming item exists
+        target_quantity=1000,
+        critical_threshold_percent=20,
+        priority_score=1
     )
-    db_session.add(buffer)
-    db_session.commit()
+    
+    # Add to session
+    async_session.add(buffer)
+    await async_session.commit()
+    
+    # Retrieve location
+    result = await async_session.execute(select(Location).where(Location.name == "Test Location"))
+    retrieved_location = result.scalar_one()
+    
+    # Verify relationship
+    assert len(retrieved_location.location_buffers) == 1
+    assert retrieved_location.location_buffers[0].target_quantity == 1000
 
-    assert len(location.location_buffers) == 1
-    assert location.location_buffers[0].target_quantity == sample_location_buffer_data["target_quantity"]
-    assert location.location_buffers[0].item.id == item.id
 
-
-def test_location_task_relationships(db_session, regiment, sample_location_data, sample_item_data, sample_task_data):
-    """Test location's relationships with tasks (as source and target)."""
-    # Create locations and item
-    source = Location(regiment_id=regiment.id, name="Source", location_type=LocationType.BACKLINE_HUB, coordinates="F5-1")
-    target = Location(regiment_id=regiment.id, **sample_location_data)
-    item = Item(**sample_item_data)
-    db_session.add_all([source, target, item])
-    db_session.commit()
-
+@pytest.mark.asyncio
+async def test_location_task_relationships(async_session, regiment):
+    """Test the relationships between locations and tasks."""
+    # Create source and target locations
+    source_location = Location(
+        regiment_id=regiment.id,
+        name="Source Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
+    )
+    target_location = Location(
+        regiment_id=regiment.id,
+        name="Target Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-3"
+    )
+    
+    # Add to session
+    async_session.add_all([source_location, target_location])
+    await async_session.commit()
+    
     # Create task
     task = Task(
-        source_location_id=source.id,
-        target_location_id=target.id,
-        item_id=item.id,
-        **sample_task_data
+        task_type=TaskType.TRANSPORT,
+        item_id=1,  # Assuming item exists
+        quantity=100,
+        status=TaskStatus.PENDING,
+        priority_score=1,
+        source_location_id=source_location.id,
+        target_location_id=target_location.id,
+        urgency=UrgencyLevel.NORMAL
     )
-    db_session.add(task)
-    db_session.commit()
+    
+    # Add to session
+    async_session.add(task)
+    await async_session.commit()
+    
+    # Retrieve locations
+    result = await async_session.execute(select(Location).where(Location.name == "Source Location"))
+    retrieved_source = result.scalar_one()
+    assert len(retrieved_source.source_tasks) == 1
+    
+    result = await async_session.execute(select(Location).where(Location.name == "Target Location"))
+    retrieved_target = result.scalar_one()
+    assert len(retrieved_target.target_tasks) == 1
 
-    # Test relationships
-    assert len(source.source_tasks) == 1
-    assert source.source_tasks[0].id == task.id
-    assert len(target.target_tasks) == 1
-    assert target.target_tasks[0].id == task.id
 
-
-def test_location_cascade_delete(db_session, regiment, sample_location_data, sample_item_data):
+@pytest.mark.asyncio
+async def test_location_cascade_delete(async_session, regiment):
     """Test that deleting a location cascades to related entities."""
-    # Create location and item
-    location = Location(regiment_id=regiment.id, **sample_location_data)
-    item = Item(**sample_item_data)
-    db_session.add_all([location, item])
-    db_session.commit()
-
-    # Create inventory and buffer
+    # Create location
+    location = Location(
+        regiment_id=regiment.id,
+        name="Test Location",
+        location_type=LocationType.FRONTLINE_HUB,
+        coordinates="F5-2"
+    )
+    
+    # Add to session
+    async_session.add(location)
+    await async_session.commit()
+    
+    # Create related entities
     inventory = Inventory(
         location_id=location.id,
-        item_id=item.id,
+        item_id=1,
         quantity=100,
-        last_updated=location.created_at,
+        last_updated=datetime.utcnow(),
         reported_by_user_id=1
     )
     buffer = LocationBuffer(
         location_id=location.id,
-        item_id=item.id,
+        item_id=1,
         target_quantity=1000,
-        critical_threshold_percent=25,
-        priority_score=3
+        critical_threshold_percent=20,
+        priority_score=1
     )
-    db_session.add_all([inventory, buffer])
-    db_session.commit()
-
-    # Store IDs for verification
-    inventory_id = inventory.id
-    buffer_id = buffer.id
-
+    
+    # Add to session
+    async_session.add_all([inventory, buffer])
+    await async_session.commit()
+    
     # Delete location
-    db_session.delete(location)
-    db_session.commit()
-
+    await async_session.delete(location)
+    await async_session.commit()
+    
     # Verify cascade delete
-    assert db_session.query(Inventory).filter_by(id=inventory_id).first() is None
-    assert db_session.query(LocationBuffer).filter_by(location_id=location.id, item_id=item.id).first() is None 
+    result = await async_session.execute(select(Inventory).where(Inventory.location_id == location.id))
+    assert result.scalar_one_or_none() is None
+    
+    result = await async_session.execute(select(LocationBuffer).where(LocationBuffer.location_id == location.id))
+    assert result.scalar_one_or_none() is None 

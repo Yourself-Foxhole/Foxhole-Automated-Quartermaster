@@ -1,157 +1,138 @@
 """
-Tests for the Item model and its relationships.
+Tests for the Item model.
 """
-
 import pytest
-from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.models.item import Item, ItemBuildingTarget
+from src.models.enums import ItemCategory, ProductionLocationType
 
 @pytest.mark.asyncio
-async def test_create_item(db_session):
+async def test_create_item(async_session: AsyncSession):
     """Test creating a basic item."""
-    # Create test item
     item = Item(
-        id="test_item",
-        name="Test Item",
-        category="Supplies",
-        description="A test item",
-        importance=4
+        name="7.62mm",
+        category=ItemCategory.AMMUNITION,
+        description="Standard rifle ammunition",
+        importance=1,
+        can_be_produced=True,
+        production_facility=ProductionLocationType.FACTORY
     )
     
-    # Add to session
-    db_session.add(item)
-    await db_session.commit()
+    async_session.add(item)
+    await async_session.commit()
     
-    # Retrieve item
-    result = await db_session.execute(select(Item).where(Item.id == "test_item"))
-    retrieved_item = result.scalar_one()
-    
-    # Verify attributes
-    assert retrieved_item.id == "test_item"
-    assert retrieved_item.name == "Test Item"
-    assert retrieved_item.category == "Supplies"
-    assert retrieved_item.description == "A test item"
-    assert retrieved_item.importance == 4
-    assert not retrieved_item.can_be_produced
-    assert retrieved_item.production_facility is None
+    # Verify item was created
+    assert item.id is not None
+    assert item.name == "7.62mm"
+    assert item.category == ItemCategory.AMMUNITION
+    assert item.description == "Standard rifle ammunition"
+    assert item.importance == 1
+    assert item.can_be_produced is True
+    assert item.production_facility == ProductionLocationType.FACTORY
 
 @pytest.mark.asyncio
-async def test_item_building_targets(db_session):
-    """Test item-building target relationships."""
-    # Create test item
+async def test_item_building_targets(async_session: AsyncSession):
+    """Test item building target relationships."""
     item = Item(
-        id="test_item",
-        name="Test Item",
-        category="Supplies",
-        description="A test item",
-        importance=4
+        name="7.62mm",
+        category=ItemCategory.AMMUNITION,
+        description="Standard rifle ammunition",
+        importance=1,
+        can_be_produced=True,
+        production_facility=ProductionLocationType.FACTORY
     )
     
     # Add building targets
-    targets = [
-        ItemBuildingTarget(
-            item_id=item.id,
-            building_type="Bunker",
-            target_quantity=1000
-        ),
-        ItemBuildingTarget(
-            item_id=item.id,
-            building_type="Safehouse",
-            target_quantity=500
-        )
-    ]
-    item.building_targets.extend(targets)
-    
-    # Add to session
-    db_session.add(item)
-    await db_session.commit()
-    
-    # Retrieve item
-    result = await db_session.execute(select(Item).where(Item.id == "test_item"))
-    retrieved_item = result.scalar_one()
-    
-    # Verify building targets
-    assert len(retrieved_item.building_targets) == 2
-    assert retrieved_item.get_target_quantity("Bunker") == 1000
-    assert retrieved_item.get_target_quantity("Safehouse") == 500
-    assert retrieved_item.get_target_quantity("Factory") is None
-
-@pytest.mark.asyncio
-async def test_item_to_dict(db_session):
-    """Test converting item to dictionary."""
-    # Create test item with building targets
-    item = Item(
-        id="test_item",
-        name="Test Item",
-        category="Supplies",
-        description="A test item",
-        importance=4,
-        can_be_produced=True,
-        production_facility="Factory"
+    target1 = ItemBuildingTarget(
+        building_type=ProductionLocationType.FACTORY,
+        target_quantity=1000
+    )
+    target2 = ItemBuildingTarget(
+        building_type=ProductionLocationType.STORAGE_DEPOT,
+        target_quantity=500
     )
     
-    # Add building target
+    item.building_targets.extend([target1, target2])
+    async_session.add(item)
+    await async_session.commit()
+    
+    # Verify targets were created
+    assert len(item.building_targets) == 2
+    assert item.get_target_quantity(ProductionLocationType.FACTORY) == 1000
+    assert item.get_target_quantity(ProductionLocationType.STORAGE_DEPOT) == 500
+    assert item.get_target_quantity(ProductionLocationType.REFINERY) == 0  # Default for unknown building
+
+@pytest.mark.asyncio
+async def test_item_to_dict(async_session: AsyncSession):
+    """Test converting item to dictionary."""
+    item = Item(
+        name="7.62mm",
+        category=ItemCategory.AMMUNITION,
+        description="Standard rifle ammunition",
+        importance=1,
+        can_be_produced=True,
+        production_facility=ProductionLocationType.FACTORY
+    )
+    
     target = ItemBuildingTarget(
-        item_id=item.id,
-        building_type="Bunker",
+        building_type=ProductionLocationType.FACTORY,
         target_quantity=1000
     )
     item.building_targets.append(target)
     
-    # Convert to dictionary
+    async_session.add(item)
+    await async_session.commit()
+    
+    # Convert to dict
     item_dict = item.to_dict()
     
     # Verify dictionary contents
-    assert item_dict["id"] == "test_item"
-    assert item_dict["name"] == "Test Item"
-    assert item_dict["category"] == "Supplies"
-    assert item_dict["description"] == "A test item"
-    assert item_dict["importance"] == 4
+    assert item_dict["id"] == item.id
+    assert item_dict["name"] == "7.62mm"
+    assert item_dict["category"] == ItemCategory.AMMUNITION
+    assert item_dict["description"] == "Standard rifle ammunition"
+    assert item_dict["importance"] == 1
     assert item_dict["can_be_produced"] is True
-    assert item_dict["production_facility"] == "Factory"
+    assert item_dict["production_facility"] == ProductionLocationType.FACTORY
     assert len(item_dict["building_targets"]) == 1
-    assert item_dict["building_targets"][0]["building_type"] == "Bunker"
+    assert item_dict["building_targets"][0]["building_type"] == ProductionLocationType.FACTORY
     assert item_dict["building_targets"][0]["target_quantity"] == 1000
 
 @pytest.mark.asyncio
-async def test_create_from_dict(db_session):
+async def test_create_from_dict(async_session: AsyncSession):
     """Test creating item from dictionary."""
-    # Create item dictionary
     item_dict = {
-        "id": "test_item",
-        "name": "Test Item",
-        "category": "Supplies",
-        "description": "A test item",
-        "importance": 4,
+        "name": "7.62mm",
+        "category": ItemCategory.AMMUNITION,
+        "description": "Standard rifle ammunition",
+        "importance": 1,
         "can_be_produced": True,
-        "production_facility": "Factory",
+        "production_facility": ProductionLocationType.FACTORY,
         "building_targets": [
             {
-                "building_type": "Bunker",
+                "building_type": ProductionLocationType.FACTORY,
                 "target_quantity": 1000
+            },
+            {
+                "building_type": ProductionLocationType.STORAGE_DEPOT,
+                "target_quantity": 500
             }
         ]
     }
     
-    # Create item from dictionary
     item = Item.from_dict(item_dict)
+    async_session.add(item)
+    await async_session.commit()
     
-    # Add to session
-    db_session.add(item)
-    await db_session.commit()
-    
-    # Retrieve item
-    result = await db_session.execute(select(Item).where(Item.id == "test_item"))
-    retrieved_item = result.scalar_one()
-    
-    # Verify attributes
-    assert retrieved_item.id == "test_item"
-    assert retrieved_item.name == "Test Item"
-    assert retrieved_item.category == "Supplies"
-    assert retrieved_item.description == "A test item"
-    assert retrieved_item.importance == 4
-    assert retrieved_item.can_be_produced is True
-    assert retrieved_item.production_facility == "Factory"
-    assert len(retrieved_item.building_targets) == 1
-    assert retrieved_item.building_targets[0].building_type == "Bunker"
-    assert retrieved_item.building_targets[0].target_quantity == 1000 
+    # Verify item was created correctly
+    assert item.id is not None
+    assert item.name == "7.62mm"
+    assert item.category == ItemCategory.AMMUNITION
+    assert item.description == "Standard rifle ammunition"
+    assert item.importance == 1
+    assert item.can_be_produced is True
+    assert item.production_facility == ProductionLocationType.FACTORY
+    assert len(item.building_targets) == 2
+    assert item.get_target_quantity(ProductionLocationType.FACTORY) == 1000
+    assert item.get_target_quantity(ProductionLocationType.STORAGE_DEPOT) == 500 

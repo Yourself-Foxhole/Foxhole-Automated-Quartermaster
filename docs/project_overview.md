@@ -1,11 +1,11 @@
-# Foxhole Logistics Bot - Project Overview
+# Foxhole Automated Quartermaster (FAQ) - Project Overview
 
 ## Project Structure
 
 The project follows a modular architecture with clear separation of concerns:
 
 ```
-Artillery-Logistics-Network/
+Foxhole-Automated-Quartermaster/
 ├── src/
 │   ├── database/
 │   │   ├── models.py           # SQLAlchemy models

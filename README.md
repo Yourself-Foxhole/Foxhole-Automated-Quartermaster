@@ -1,10 +1,10 @@
-# Foxhole Logistics Bot
+# Foxhole Automated Quartermaster (FAQ)
 
 A Discord bot for coordinating logistics operations in the game Foxhole. The bot uses a pull-based model where demands at the frontline generate upstream tasks.
 
 ## Project Overview
 
-The Foxhole Logistics Bot is designed to help players coordinate logistics operations in the game Foxhole. It tracks inventory levels, generates tasks based on deficits, and helps players coordinate the production and transportation of resources.
+The Foxhole Automated Quartermaster (FAQ) is designed to help players coordinate logistics operations in the game Foxhole. It tracks inventory levels, generates tasks based on deficits, and helps players coordinate the production and transportation of resources.
 
 ### Key Features
 

@@ -3,12 +3,14 @@ Database models for the Foxhole Logistics Bot.
 """
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Boolean, Float, Enum as SQLEnum, JSON
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Boolean, Float, Enum as SQLEnum, JSON, UniqueConstraint
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    """Base class for all models."""
+    pass
 
 
 # Enumerations
@@ -243,26 +245,106 @@ class LocationSource(Base):
     source_location = relationship("Location", foreign_keys=[source_location_id], back_populates="source_locations")
 
 
-class Item(Base):
+class ItemBuildingTarget(Base):
     """
-    Represents an item in the game that can be produced, transported, or consumed.
+    Represents the target quantity of an item for a specific building type.
     """
-    __tablename__ = "items"
+    __tablename__ = "item_building_targets"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    category = Column(SQLEnum(ItemCategory), nullable=False)
-    is_crate_packable = Column(Boolean, default=True)
-    crate_size = Column(Float, nullable=True)  # How many can fit in a standard transport unit
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    item_id = Column(Integer, ForeignKey("items.id", ondelete="CASCADE"))
+    building_type = Column(String)
+    target_quantity = Column(Integer)
+
+    # Relationship
+    item = relationship("Item", back_populates="building_targets")
+
+    def __repr__(self):
+        return f"<ItemBuildingTarget(item_id={self.item_id}, building_type={self.building_type}, target_quantity={self.target_quantity})>"
+
+
+class ItemProductionInput(Base):
+    """Represents the production inputs required for an item."""
+    __tablename__ = "item_production_inputs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))
+    input_item_id: Mapped[int] = mapped_column(ForeignKey("items.id"))
+    quantity: Mapped[int] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    item: Mapped["Item"] = relationship("Item", foreign_keys=[item_id], back_populates="production_inputs")
+    input_item: Mapped["Item"] = relationship("Item", foreign_keys=[input_item_id])
+
+    def __repr__(self) -> str:
+        return f"<ItemProductionInput(id={self.id}, item_id={self.item_id}, input_item_id={self.input_item_id}, quantity={self.quantity})>"
+
+
+class Item(Base):
+    """Represents a game item."""
+    __tablename__ = "items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)
+    category: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(nullable=True)
+    importance: Mapped[int] = mapped_column(default=1)
+    can_be_produced: Mapped[bool] = mapped_column(default=False)
+    production_facility: Mapped[str] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    building_targets: Mapped[List["ItemBuildingTarget"]] = relationship("ItemBuildingTarget", back_populates="item", cascade="all, delete-orphan")
+    production_inputs: Mapped[List["ItemProductionInput"]] = relationship("ItemProductionInput", foreign_keys="[ItemProductionInput.item_id]", back_populates="item")
+    inventories = relationship("Inventory", back_populates="item")
+    location_buffers = relationship("LocationBuffer", back_populates="item")
+    tasks = relationship("Task", back_populates="item")
     recipes = relationship("Recipe", back_populates="output_item")
     recipe_ingredients = relationship("RecipeIngredient", back_populates="ingredient_item")
-    inventories = relationship("Inventory", back_populates="item", cascade="all, delete-orphan")
-    tasks = relationship("Task", back_populates="item")
-    location_buffers = relationship("LocationBuffer", back_populates="item", cascade="all, delete-orphan")
+
+    def get_target_quantity(self, building_type: str) -> Optional[int]:
+        """Get the target quantity for a specific building type."""
+        target = next((t for t in self.building_targets if t.building_type == building_type), None)
+        return target.target_quantity if target else None
+
+    def to_dict(self) -> dict:
+        """Convert the item to a dictionary."""
+        return {
+            "name": self.name,
+            "category": self.category,
+            "description": self.description,
+            "importance": self.importance,
+            "can_be_produced": self.can_be_produced,
+            "production_facility": self.production_facility,
+            "building_targets": [
+                {
+                    "building_type": target.building_type,
+                    "target_quantity": target.target_quantity
+                }
+                for target in self.building_targets
+            ]
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Item":
+        """Create an item from a dictionary."""
+        building_targets_data = data.pop("building_targets", [])
+        item = cls(**data)
+        
+        for target_data in building_targets_data:
+            target = ItemBuildingTarget(
+                building_type=target_data["building_type"],
+                target_quantity=target_data["target_quantity"]
+            )
+            item.building_targets.append(target)
+        
+        return item
+
+    def __repr__(self) -> str:
+        return f"<Item(id={self.id}, name='{self.name}', category='{self.category}')>"
 
 
 class Recipe(Base):
@@ -308,13 +390,18 @@ class Inventory(Base):
     """
     __tablename__ = "inventories"
 
-    location_id = Column(Integer, ForeignKey("locations.id"), primary_key=True)
-    item_id = Column(Integer, ForeignKey("items.id"), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
     quantity = Column(Integer, nullable=False)
     last_updated = Column(DateTime, nullable=False)
     reported_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('location_id', 'item_id', name='uix_inventory_location_item'),
+    )
 
     # Relationships
     location = relationship("Location", back_populates="inventories")
@@ -362,8 +449,9 @@ class LocationBuffer(Base):
     """
     __tablename__ = "location_buffers"
 
-    location_id = Column(Integer, ForeignKey("locations.id"), primary_key=True)
-    item_id = Column(Integer, ForeignKey("items.id"), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
     target_quantity = Column(Integer, nullable=False)
     critical_threshold_percent = Column(Integer, nullable=False)
     alert_role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
@@ -372,6 +460,10 @@ class LocationBuffer(Base):
     priority_score = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('location_id', 'item_id', name='uix_location_buffer_location_item'),
+    )
 
     # Relationships
     location = relationship("Location", back_populates="location_buffers")
