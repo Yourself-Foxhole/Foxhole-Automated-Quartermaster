@@ -1,1 +1,2 @@
-# The purpose of this file is to schedule python jobs.
+# This file should contain the data interactions for the database.
+

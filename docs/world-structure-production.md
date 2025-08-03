@@ -94,6 +94,10 @@ Garages are more rare than factories, and typically you may have to go as far as
 A container yard is probably the least utilized production buidling in the game. It allows you to make everything in the shippables tab. This includes pallets, containers, and emplaced weapons. Of note the shipyard can produce all the launchers used by the mitlitary.
 
 The construction yard functions much like the garage, however you can use construction equipment to automate production of shippables at the container yard.
-x   
+
 
 ## Shipyard
+
+The shipyard allows you to produce freighters, barges, gunboats, and other basic ships. Like the container yard, it is entirely manual, and you must use your hammer to make ships. It is intended for immediate use and not for mass production.
+
+As ships have relatively long queue times at the you should generally prefer to make all items at the shipyard so the MPF can be used for more important items. Items like gunboats which use rmats should be made at the shipyard.

@@ -1,4 +1,25 @@
-apscheduler==3.11.0
+# Discord
+disnake==2.10.1
+
+# Database
 peewee==3.18.2
+
+# Testing
+pytest==8.3.5
+pytest-asyncio==1.1.0
+pytest-cov==6.1.1
+pytest-func-cov==0.2.3
+pytest-mock==3.14.1
+
+# Utilities
+python-dotenv==1.1.1
+loguru==0.7.3
+apscheduler==3.11.0
 networkx==3.5
-dissnake==9.0.0
+
+# Type checking
+mypy==1.15.0
+types-python-dateutil==2.9.0.20250708
+sqlalchemy-stubs==0.4
+pydantic==2.12.0a1
+

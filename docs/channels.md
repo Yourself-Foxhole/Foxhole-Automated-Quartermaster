@@ -55,7 +55,7 @@ This document details the layout of various channels for users to interact with 
     * The transportation section should primarily include a list of how many truck or container loads of stuff is waiting to be moved and the general need for items before and after the change.
     * A transportation ticket should be prioritized, this section should be entirely focused on midline logi, with frontline distribution getting it's own section.
   * Frontline—Location
-  * Regiment Reuqests
+  * Regiment Requests
     * Regiment requests contain exclusively requests put in by players within the regiment. They can be filfulled and marked as done, but serve almost like a custom field.
     * Regiment requests are divided into  3 categories, high priority requests for esxisting items, user defined tasks, and recurring tasks.
 
