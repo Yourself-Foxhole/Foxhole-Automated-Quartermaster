@@ -1,0 +1,4 @@
+apscheduler==3.11.0
+peewee==3.18.2
+networkx==3.5
+dissnake==9.0.0
