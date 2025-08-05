@@ -26,7 +26,7 @@ The MPF gives three important discounts:
 
 * A *cost* discount of 10% per crate, stacking to a maximum of 50%
 * A *time* discount, stacking to a maximum of 10x
-* For shippables, a *density* discount allowing 3 shippables per shippable slot instead of just one. 
+* For shippables, a *density* discount allowing 3 shippables per shippable slot instead of just one.
 
 
 These are essential for providing high volume logistics, as the greatest production bottlenekc is often midline transportation.
@@ -49,7 +49,7 @@ For shippables they are output as an unassembled box that can be unpacked at a s
 
 The MPF typically has a long lead time of production, often over 24 real life hours for things like vehicles. As a result, it can be quite challenging to get the production volume needed to truly sustain a front from purely MPF production alone. It takes days to get enough stuff to fill a single shipping container at an MPF and less than a day to use an entire shipping container worth of items on the front. In fact, depending on the type of item it could be in as little as a few minutes. It is not uncommon for extremely active fronts to go through a shipping container worth of items in about 15 minutes.
 
-Because of this, the MPF should be a treasured and guarded resource. Items that are expensive should always be strived to be produce in the MPF, and the MPF should always try to produce as much as reasonably possible. 
+Because of this, the MPF should be a treasured and guarded resource. Items that are expensive should always be strived to be produce in the MPF, and the MPF should always try to produce as much as reasonably possible.
 
 All MPFs contain a constraint wherein they can only have a maximum of 25 orders queued across the entire team at one time. This is not usually a huge deal as queue space opens relatively quickly, often within under an hour. But it can be a large problem if you have multiple people who need to set uquees.
 
@@ -62,7 +62,7 @@ While it is theoretically possible to use multiple MPFs, actually doing so intro
 
 The factory is the MPF's faster cousin. Unlike the MPF a factory produces items in only a few minutes instead of several hours. The actual per cycle production time is less, only a maximum of 4 crates and there is no discount.
 
-Factories still only produce a single queue at a time, and may have a total of 6 players queued with orders for a particular item. They differ substantially from the MPF because unlike the MPF the maximum possible queue time at a factory is roughly 30 minutes. In practice, they usually have a very short wait. The number of factories and whether there is any queue at all greatly influences production per man hour. 
+Factories still only produce a single queue at a time, and may have a total of 6 players queued with orders for a particular item. They differ substantially from the MPF because unlike the MPF the maximum possible queue time at a factory is roughly 30 minutes. In practice, they usually have a very short wait. The number of factories and whether there is any queue at all greatly influences production per man hour.
 
 Having access to two factories is very ideal for producing large numbers of items.
 

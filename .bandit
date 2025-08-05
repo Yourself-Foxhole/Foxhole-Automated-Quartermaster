@@ -1,0 +1,7 @@
+[bandit]
+exclude: tests
+
+# You can add more configuration as needed, e.g.:
+# tests = True
+# severity-level = medium
+# confidence-level = high

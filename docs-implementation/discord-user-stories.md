@@ -58,3 +58,10 @@ So that I can always interact with it and receive timely updates.
 - The bot must attempt to reconnect automatically if disconnected unexpectedly.
 - The bot must handle and log authentication or connection errors.
 - The bot must disconnect gracefully on shutdown.
+
+
+### Monitoring Channels
+
+Feature: The bot reads channel, reactions, and other interactions with a user and processes the changes.
+
+As a user, I want to be able to interact with the bot and for my inputs to be processed and reflected.

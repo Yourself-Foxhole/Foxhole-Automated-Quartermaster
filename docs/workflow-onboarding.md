@@ -9,14 +9,14 @@ Welcome to the Foxhole Automated Quartermaster (FAQ). This bot aims to create an
 * Why don't we have what we need?
 * How much longer until we get x?
 
--- Query WarAPI @ 
+-- Query WarAPI @
 
 Welcome to War {Number}
 
 1. Proceeding with onboarding will delete and rebuild your database and require you to reenter all your setup information. This is intended to be done at the start of every war. Are you sure you want to continue?
    2. If you want to change only a single setting you may do so with a command.
    3. If you would like a list of everything covered in onboarding react.
-2. Which MPF do you want to use? 
+2. Which MPF do you want to use?
    3. List all MPFs
    4. List an option to not use an MPF
 5. Do you want to add nearby buildings to the MPF to your logistics network?
@@ -36,5 +36,4 @@ Welcome to War {Number}
     17. Group first by if there is a refinery present in the same hex
     18. Then group by the number of factories present in the hex, in descending order
     19. Always list island hexes within a group
-20. 
-
+20.

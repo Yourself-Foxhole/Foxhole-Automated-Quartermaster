@@ -1,0 +1,13 @@
+# See https://pre-commit.com for more information
+# Ruff: https://github.com/astral-sh/ruff-pre-commit
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 'v0.12.7'
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.8.6'
+    hooks:
+      - id: bandit
+        args: ["--quiet"]

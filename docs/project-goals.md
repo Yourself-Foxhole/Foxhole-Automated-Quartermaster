@@ -5,7 +5,7 @@ This design document explains the goals and key features of this project.
 
 ## Introduction
 
-The goal of this project is to facilitate information of human players via the chat platform discord. The bot should 
+The goal of this project is to facilitate information of human players via the chat platform discord. The bot should
 
 
 ## The Problem Space
@@ -50,9 +50,9 @@ For Foxhole logistical density is one of the single most important factors in ef
 
 The inventory of items is kept in one of two configurations: slots or stockpiles.
 
-Slots are the basic unit of space in Foxhole. All items in the game take a minimum of one slot. Depending on the item, items may stack allowing them to be stored more compactly. The game developers will set stack sizes depending on their desired role with more expensive items usually having lower stack sizes. The standard inventory size for most vehicles or buildings is 15 slots. 
+Slots are the basic unit of space in Foxhole. All items in the game take a minimum of one slot. Depending on the item, items may stack allowing them to be stored more compactly. The game developers will set stack sizes depending on their desired role with more expensive items usually having lower stack sizes. The standard inventory size for most vehicles or buildings is 15 slots.
 
-Stockpiles allow for a much greater quantity of items stored, however they bring additional restrictions on the state of the items. Items in a stockpile incur assembly times when they are removed from the stockpile called "pull times" by the player community. This is a game mechanic intended to avoid griefing, but it is in this author's opinion poorly designed and heavy-handed. It punishes all players in the game to only slightly mitigate the problem of bad actors. The more expensive the item is it generally has longer pull times. Most items will have between a 1-10 second pull time. With pull times for expensive or important items being long such as 30 seconds or longer. 
+Stockpiles allow for a much greater quantity of items stored, however they bring additional restrictions on the state of the items. Items in a stockpile incur assembly times when they are removed from the stockpile called "pull times" by the player community. This is a game mechanic intended to avoid griefing, but it is in this author's opinion poorly designed and heavy-handed. It punishes all players in the game to only slightly mitigate the problem of bad actors. The more expensive the item is it generally has longer pull times. Most items will have between a 1-10 second pull time. With pull times for expensive or important items being long such as 30 seconds or longer.
 
 Stockpiles have additional properties with restrictions depending on the type of stockpile. Generally items may only be added to a stockpile if they are good condition fully repaired, with empty inventories, and not connected to other things. Anything other than the base item will be deleted when something is added to a stockpile, such as fuel, ammunition, or anything in the item inventory.
 
@@ -65,7 +65,7 @@ For logistics purposes, the main types we care about are slots, stack sizes with
 
 For resource gathering we care about 4 different ways of storing items:
 
-* Basic Truck 
+* Basic Truck
   * The base transport truck is the Dunne or R-5 Hauler. It is a quite useful general purpose vehicle but does not have a large inventory capacity. While it is possible to use it for resource gathering, you would have to make many trips, and could find a higher capacity vehicle making it only good for early war.
 * Expanded Capacity Truck (e.g. Loadlugger)
   * Expanded capacity trucks are effectively dump trucks within the world of Foxhole. They carry a pretty notable advantage of being able to carry more items. For instance you may carry 20 stacks of items in a loadlugger, but only 15 in a base truck. The disadvantage of the loadlugger is they are not general purpose. You may only use a loadlugger for resource gathering and it can't store complex or finished products.
@@ -79,7 +79,7 @@ For resource gathering we care about 4 different ways of storing items:
 
 Transportation during production can take a variety of forms. Production is very different depending on if the player is doing it at world structures or player facilities.
 
-For world structure production, it involves "Factory Dancing" wherein you transport things between buildings one after another and make different items. 
+For world structure production, it involves "Factory Dancing" wherein you transport things between buildings one after another and make different items.
 
 
 

@@ -20,9 +20,9 @@ When considering cost, the bot should primarily be attempting to convert cost in
 
 In the backlines where scrap is scarce and the MPF close by it is likely better to set additional MPF queues and produce items there. In the frontline where resources are plentiful, it is likely better to simply mine more resources and produce items at a factory or other production facility.
 
-Facilities add another layer of complexity to the cost metric. They have a fixed cost in terms of resources to build and can often can produce items at a lower cost total time cost than the MPF plus a higher volume of total product. However, they also require extensive planning, coordination, and management to ensure their security and prevent decay from lack of Maintenance Supplies. 
+Facilities add another layer of complexity to the cost metric. They have a fixed cost in terms of resources to build and can often can produce items at a lower cost total time cost than the MPF plus a higher volume of total product. However, they also require extensive planning, coordination, and management to ensure their security and prevent decay from lack of Maintenance Supplies.
 
-If you add in the cost of maintenance supplies and the time required to transport them plus the inital pcmats used in production facilities often only pay off if they are used for a long period of time. 
+If you add in the cost of maintenance supplies and the time required to transport them plus the inital pcmats used in production facilities often only pay off if they are used for a long period of time.
 
 ## Material Types
 
@@ -45,7 +45,7 @@ Midline transportation is usually the bottleneck in the Foxhole supply chain. Th
 
 ## Overproduction
 
-In general, the bot should prefer intentional overproduction of certain items within reason. Generally, it is better to always take advantage of full production queues at a factory or MPF, even if it means producing more than is immediately needed. 
+In general, the bot should prefer intentional overproduction of certain items within reason. Generally, it is better to always take advantage of full production queues at a factory or MPF, even if it means producing more than is immediately needed.
 
 This is because:
 
@@ -59,10 +59,10 @@ Regiments in general tend towards overproduction of items. Most players are focu
 
 ## Lead Times
 
-The bot should consider the lead times for production when determining production preferences. If there is a large shortage of an item, the bot should prioritize producing that item as soon as possible. 
+The bot should consider the lead times for production when determining production preferences. If there is a large shortage of an item, the bot should prioritize producing that item as soon as possible.
 
 For the most part, the bot should prefer efficient production unless the priority has explicitly been raised by a user and approved by a logistics officer. This is because at the end of the day, the bot is simply a task board, and players retain the ability to override the bot's decisions. If something is truly in shortage, it may not need to be communicated explicitly through the bot, having adequate up ot date dashboards to maintain situational awareness is often enough.
 
 Communicating lead times to people further down the supply chain is one of the biggest value adds the bot can do. Especially when factoring in cook times or when something will be available.
 
-Players lean towards being impatient, so the bot preferring efficient production is often 
+Players lean towards being impatient, so the bot preferring efficient production is often

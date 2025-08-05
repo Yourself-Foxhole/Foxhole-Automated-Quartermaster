@@ -41,6 +41,5 @@ Instead of trying to generate tasks for facilities we instead approach the idea 
     * Tank Factory
   * Large Assembly Bay
     * Train Upgrade
-    * 
+    *
 * Advanced Manufacturing
-

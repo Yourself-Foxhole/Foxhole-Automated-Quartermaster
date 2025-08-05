@@ -7,11 +7,11 @@ This document details the layout of various channels for users to interact with 
   * The purpose of a dashboard channel is to give an overview of things that are occurring. A dashboard should be done to do the following:
     * System Overview
       * The System Overview is responsible for displaying in a single page or screen what the status of everything is. It should report a overall inventory status for each major hub in the network. It should also show a summary and rollup of major KPIs for the given system to give an idea of health. With a focus on Resources, Production, Facilities, Frontline Depots, and Bunker Bases.
-    * Stockpile 
+    * Stockpile
       * This dashboard should display all stockpiles, their expiration timers, allow the refresh of timers, and have a list of applicable stockpile codes
     * Resource
       * This dashboard should have detailed information on scroop totals with the amounts of all 7 raw materials needed, how much is currently stored or pending transport, how much is in transport, and who is currently on the tasks.
-    * Production 
+    * Production
       * This dashboard should show the different regions we have production in and their overall status and health especially of critical or high demand areas within the network.
     * Production - Location
       * Production - Refine
@@ -19,7 +19,7 @@ This document details the layout of various channels for users to interact with 
       * Production - Mass Production Factory
         * This dashboard should display the number of items waiting pickup at the MPF, the number that need to be made, the ones currently in progress, and an overview of approsimately when each order will be ready.
       * Production - Factory
-        * This dashboard should contain the number of needed 
+        * This dashboard should contain the number of needed
       * Production - Individual items
         * This dashboard should have a list and statistics ov items that need to be made at the garage, construction yard, or shipyard.
     * Transportation
@@ -40,9 +40,9 @@ This document details the layout of various channels for users to interact with 
   * Prioritized
     * The prioritized task board should be the both's priority algorithm for what needs to be done. This is described in detail in other documentation steps, but generally this includes the proprity and a bubble up mode wherein things are elevated based on the number and severity of downstream blocking tasks that exist.
   * Resource
-    * The Resource Taskboard duplicates some of what we have in the resource dashboard, but allows users to track container loads, truck loads, or small train loads worth of resources and to 
+    * The Resource Taskboard duplicates some of what we have in the resource dashboard, but allows users to track container loads, truck loads, or small train loads worth of resources and to
   * Production - Location - MPF
-    * The MPF task board should contain a recommended list of needed items by item category with a button at the top to automatically grab an MPF queue. 
+    * The MPF task board should contain a recommended list of needed items by item category with a button at the top to automatically grab an MPF queue.
     * Grab MPF queues, if clicked the bot will automatically populate a ticket telling which queues you should make and the number of crates of materials you need in order to be able to make it, along with the recommended transportation method.
     * Individual MPF queue, if the user wishes to only ake a certain category or item, they may click a button to react and make that given item.
   * Production - Location - Factory
@@ -65,7 +65,7 @@ This document details the layout of various channels for users to interact with 
     * For a given frontline bb or delivery edge, there should be a thread allowing communication
     * For a given task it should be able to be unclaimed and returned to the pool or the actions undone
   * THe intended use case is that a screenshot is uploaded, the network quantities uploaded, a task seen on the task board, claimed, the event logged in a ticket channel, and then the task is removed from the task board.
-  * Tickets should show a post within a thread of who is doing a ticket and details, and the thread itself should contain a channel history of everyone doing that ticket.               
+  * Tickets should show a post within a thread of who is doing a ticket and details, and the thread itself should contain a channel history of everyone doing that ticket.
 
 
 

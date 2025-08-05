@@ -1,0 +1,44 @@
+[project]
+name = "Foxhole-Automated-Quartermaster"
+version = "0.1.0"
+description = "A logistics automation tool for the Foxhole game, designed to streamline the quartermaster's tasks."
+readme-content-type = "text/markdown"
+keywords = ["foxhole", "logistics", "automation"]
+authors = ["Your Name <you@example.com>"]
+license = "GPT v3"
+readme = "README.md"
+requires-python = ">=3.7"
+
+[project.optional-dependencies]
+dev = [
+    "bandit>=1.7.0",
+]
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+    "venv",
+    "env",
+    "*.egg-info",
+    "Stockpiler/",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  # pycodestyle, pyflakes, warnings, isort
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

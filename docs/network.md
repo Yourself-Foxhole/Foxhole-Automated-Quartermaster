@@ -38,7 +38,7 @@ Items flow from raw materials
 
 Each node should have at least one directed connection from it's upstream node.
 
-An edge or node should contain information about what is to move along it. 
+An edge or node should contain information about what is to move along it.
 
 For example, let's say you have a Supply Depot in the frontline that is pulling from 3 sources:
 
@@ -56,11 +56,10 @@ Because of all these scenarios, edges preferences and data need to be stored som
 
 ## Reverse Logistics
 
-At the current type we are simplifing the network by ignoring reverse logistics. For example redistribution of items to another frontline base. For the most part this because things in Foxhole tend to only flow one direction and once uncrated most items can't be uncrated again. 
+At the current type we are simplifing the network by ignoring reverse logistics. For example redistribution of items to another frontline base. For the most part this because things in Foxhole tend to only flow one direction and once uncrated most items can't be uncrated again.
 
-For example, if you were to redistribute Solider's Supplies (Shirts) the slow pull time means you can only store a stack size of 1 with each shirt taking an inventory slot. So whereas a Dunne hauler could carry 15 crates of 10 shirts (150 shirts) it would take 10 round trips of 15 shirts to carry the same quantity once uncrated. 
+For example, if you were to redistribute Solider's Supplies (Shirts) the slow pull time means you can only store a stack size of 1 with each shirt taking an inventory slot. So whereas a Dunne hauler could carry 15 crates of 10 shirts (150 shirts) it would take 10 round trips of 15 shirts to carry the same quantity once uncrated.
 
 This makes redistribution unappealing for all but the most expensive items and not something which needs to be tracked en mass.
 
 However, the architecture should not be so limited as to prevent all forms of future expansion into reverse logistics. For now, such things would be best implemented as a manual task rather than automatically managed.
-

@@ -6,7 +6,7 @@ Frontline destinations are split up by both their actual definitions by the game
 
 In terms of the game developers, destinations break down as follows:
 
-* World Structures 
+* World Structures
   * Description
     * Include pre-placed goals or objectives
     * Often include high HP, high resistance points
@@ -23,5 +23,3 @@ In terms of the game developers, destinations break down as follows:
   * Ship
     * Longhook - Mobile Bunker Base
     * Bluefin - Mobile Storage Depot
-
-    

@@ -3,23 +3,27 @@
 # The only job of this file is to start the layers of our application and handle any command line parameters
 
 import asyncio
+import os
+
+from dotenv import load_dotenv
+
 from data.discord.discord import DiscordBot
+
+load_dotenv()
 
 
 def main() -> None:
-    # Example: Replace 'YOUR_TOKEN' with your actual Discord bot token
-    token = 'YOUR_TOKEN'
+    token = os.getenv("DISCORD_TOKEN")
+    if not token:
+        raise ValueError("DISCORD_TOKEN environment variable not set.")
     bot = DiscordBot(token=token)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         loop.run_in_executor(None, bot.run)
-        loop.run_forever()
-    except KeyboardInterrupt:
-        pass
     finally:
-        bot.shutdown()
         loop.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
