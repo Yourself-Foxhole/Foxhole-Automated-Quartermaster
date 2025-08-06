@@ -1,7 +1,6 @@
-
+-i https://pkgs.safetycli.com/repository/yourself-foxhole/project/artillery-logistics-network/pypi/simple/
 # Discord
 disnake==2.10.1
-
 
 # Type checking
 mypy==1.15.0
