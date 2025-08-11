@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SonarLintProjectSettings">
+    <option name="additionalProperties">
+      <map>
+        <entry key="sonar.issue.ignore.multicriteria" value="s1" />
+        <entry key="sonar.issue.ignore.multicriteria.s1.resourceKey" value="data/discord/discord.py" />
+        <entry key="sonar.issue.ignore.multicrtieria.s1.ruleKey" value="python:S7503" />
+      </map>
+    </option>
     <option name="bindingEnabled" value="true" />
+    <option name="fileExclusions">
+      <list>
+        <option value="GLOB:Stockpiler/*" />
+      </list>
+    </option>
     <option name="projectKey" value="Yourself-Foxhole_Foxhole-Automated-Quartermaster" />
     <option name="serverId" value="yourself-sonarqube" />
   </component>

@@ -2,8 +2,10 @@
 
 This project relies on several Python packages and external tools. Below is a list of the main dependencies as specified in `requirements.txt`.
 
+
 ## Python Packages
 
+- **FoxAPI**: Foxhole War API wrapper. Used for all war, map, and report data access. See [FoxAPI GitHub](https://github.com/ThePhoenix78/FoxAPI).
 - **dissnake**: Discord API wrapper for building bots.
 - **peewee**: Lightweight ORM for database interactions.
 - **pytest**: Testing framework for Python.
@@ -24,6 +26,7 @@ This project relies on several Python packages and external tools. Below is a li
 
 - **SQLite**: Used as the database backend.
 
+
 ## Notes
 
 - All Python dependencies are listed in `requirements.txt`.
@@ -33,4 +36,5 @@ This project relies on several Python packages and external tools. Below is a li
   pip install -r requirements.txt
   ```
 
+- The `dependencies/` folder (including FoxAPI) is excluded from all code quality checks (see `pyproject.toml`).
 - Some features may require additional system libraries (e.g., SQLite, Tesseract for OCR if used elsewhere).

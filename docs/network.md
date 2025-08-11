@@ -22,12 +22,12 @@ Nodes are anything on the graph which has an inventory. They can be one of 5 typ
 1. Resource Nodes
 2. Refinery
 3. Production Building
-   1. Factory
-   2. Mass Production Factory (MPF)
-   3. Manual Build
-      3. Garage
-      4. Construction Yard
-      5. Shipyard
+    1. Factory
+    2. Mass Production Factory (MPF)
+    3. Manual Build
+        1. Garage
+        2. Construction Yard
+        3. Shipyard
 4. Logistics Hub  (Storage Depot/Seaport/Bluefin Large Ship)
 5. Facility
 

@@ -1,11 +1,13 @@
 
-The bot should be a 4 layer architecture.
+The bot should be a 4-layer architecture.
 
 The layers should be organized as follows:
 
 * Model - Data Layer
   * Database ORM
     * Peewee
+  * War API
+    * FoxAPI (see `data/warapi/war_api_client.py`)
   * Discord Presence
     * dissnake
 * Service Layer

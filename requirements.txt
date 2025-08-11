@@ -3,31 +3,35 @@
 disnake==2.10.1
 
 # Type checking
-mypy==1.15.0
-networkx==3.5
+mypy==1.17.1
+pyright==1.1.403
+pydantic==2.10.0 # Version 2.10.0 or earlier required by safety==3.6.0
 
 # Database
 peewee==3.18.2
-pydantic==2.12.0a1
-pyright==1.1.403
 
 # Testing
-pytest==8.3.5
+pytest==8.4.1
 pytest-asyncio==1.1.0
-pytest-cov==6.1.1
+pytest-cov==6.2.1
 pytest-func-cov==0.2.3
 pytest-mock==3.14.1
-hypothesis==6.136.9
+hypothesis==6.137.1
 
 # Utilities
 python-dotenv==1.1.1
 apscheduler==3.11.0
-bandit==1.8.6
+bandit==1.8.7
 loguru==0.7.3
+networkx==3.5
+requests==2.32.4
 
+# Foxhole War API wrapper
+FoxAPI @ file://./dependencies/FoxAPI
 # Code Quality
-ruff==0.12.7
+ruff==0.12.8
 safety==3.6.0
 sqlalchemy-stubs==0.4
-types-python-dateutil==2.9.0.20250708
+types-python-dateutil==2.9.0.20250809
 vulture==2.14
+pylint==3.3.8

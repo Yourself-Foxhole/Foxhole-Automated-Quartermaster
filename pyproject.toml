@@ -7,7 +7,7 @@ keywords = ["foxhole", "logistics", "automation"]
 authors = ["Your Name <you@example.com>"]
 license = "GPT v3"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.13"
 
 [project.optional-dependencies]
 dev = [
@@ -19,6 +19,7 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
+target-version = "py313"
 line-length = 120
 exclude = [
     ".git",
@@ -31,10 +32,72 @@ exclude = [
     "env",
     "*.egg-info",
     "Stockpiler/",
+    "dependencies/",
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]  # pycodestyle, pyflakes, warnings, isort
+select = [
+    "A", # flake8-annotations
+    "AIR", # airflow
+    "ANN", # type annotations
+    "ASYNC", # flake8-async
+    "ARG", # falke8 unused arguments
+    "B", # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "COM", # flake8-commas (specifically trailing commas)
+    "C", # complexity
+    "C4", # flake8-comprehensions
+    "C90", # flake8-90-complexity
+    "D", # pydocstyle
+    "DJ", # flake8-django
+    "DTZ", # flake8-datetimez Timezone checks
+    "E", # Error
+    "EM", # Error messages
+    "ERA", # eradicate commented out code
+    "EXE", # flake8-executable
+    "F", # pyflakes
+    "FA", # flake8-future-annotations
+    "FBT", # flake8-boolean-trap
+    "FIX", # flake8 fix me
+    "FLY", # flake8-flynt
+    "FURB", # refur
+    "G", # flake8-logging-format
+    "I", # isort
+    "ICN", # flake8-import-conventions
+    "ISC", # flake8-implicit-str-concat
+    "INT", # flake8-gettext
+    "INP", # flake8-no-pep420
+    "LOG", # flake8-logging
+    "N", # pep8-naming
+    "NPY", # NumPy specific rules
+    "PERF", # Perflint: performance
+    "PD", # flake8-pandas-vet
+    "PIE", # flake8-pie
+    "PLE", # errors related to Pylint
+    "PLW", # warnings related to Pylint
+    "PGH", # pygrep-hooks
+    "PT", # pytest-style
+    "PTH", # flake8-use-pathlib
+    "PYI", # flake8-pyi
+    "Q", # flake8-quotes
+    "RET", # flake8-return
+    "RUF", # Ruff specific rules
+    "RSE", # flake8-raise
+    "S", # bandit security checks
+    "SIM", # flake8-simplify
+    "SLF", # flake8-self
+    "SLOT", # flake8-slots
+    "T10", # flake8-debugger
+    "TC", # flake8-type-checking
+    "TD", # flake8-todos
+    "TID", # flake8-tidy-imports
+    "TRY", # tryceratops
+    "SIM", # flake8-simplify
+    "UP", # pyupgrade
+    "W", # Warning
+    "YTT", # flake8-2020
+]
+
 ignore = []
 
 [tool.ruff.format]
@@ -42,3 +105,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.pyright]
+typeCheckingMode = "strict"

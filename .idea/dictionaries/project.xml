@@ -2,6 +2,8 @@
   <dictionary name="project">
     <words>
       <w>loadlugger</w>
+      <w>nosonar</w>
+      <w>pycov</w>
     </words>
   </dictionary>
 </component>

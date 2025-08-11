@@ -2,6 +2,23 @@ Foxhole has an API called War API which can be found here: https://github.com/cl
 
 We use War API to get useful information about the War to avoid the user having to enter in as much data and to guard against data validation errors.
 
+
+# War API Integration
+
+We use [FoxAPI](https://github.com/ThePhoenix78/FoxAPI) to access the Foxhole War API. FoxAPI provides a robust, cached, and well-structured interface for all war, map, and report data. All code should use the data access functions in `data/warapi/war_api_client.py`.
+
+Example usage:
+
+```python
+from data.warapi.war_api_client import get_hexagon_data
+hex_data = get_hexagon_data('Deadlands')
+print(hex_data.war_report)
+print(hex_data.static)
+print(hex_data.dynamic)
+print(hex_data.captured_towns)
+print(hex_data.casualty_rate)
+```
+
 ## Endpoints and our analysis of them
 
 * GET /worldconquest/war

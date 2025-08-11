@@ -1,7 +1,7 @@
 import subprocess
 import sys
 
-# Default path to check is current directory
+# The default path to check is current directory
 path = sys.argv[1] if len(sys.argv) > 1 else "."
 
 try:

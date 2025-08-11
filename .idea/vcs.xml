@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Stockpiler" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/FoxAPI/FoxAPI" vcs="Git" />
   </component>
 </project>

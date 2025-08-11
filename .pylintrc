@@ -1,0 +1,11 @@
+[MASTER]
+# Enable all checkers
+load-plugins=pylint.extensions.*
+
+ignore=.venv,Stockpiler
+
+[MESSAGES CONTROL]
+disable=
+
+[FORMAT]
+max-line-length=120
