@@ -3,7 +3,8 @@
 This module defines the Peewee ORM models and database setup for storing
 persistent data related to the War API, onboarding, alerting, and logistics network.
 
-Models include War, Map, WarReport, MapStatic, MapDynamic, Facility, Building, Region, Player, and Task.
+Models include War, Map, WarReport, MapStatic, MapDynamic, Facility, Building, Region, Player,
+  Task, and ProductionCalculationCache.
 
 Call setup() once at application startup to ensure all tables exist.
 """
@@ -97,6 +98,16 @@ class Task(BaseModel):
     created_at = DateTimeField(default=datetime.datetime.utcnow)
     updated_at = DateTimeField(default=datetime.datetime.utcnow)
 
+class ProductionCalculationCache(BaseModel):
+    """Stores cached production calculation results for a node and amount."""
+    node_name = CharField()
+    amount = FloatField()
+    result_json = TextField()  # JSON string of calculation result
+    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+
+    class Meta:
+        indexes = ((('node_name', 'amount'), True),)  # Unique constraint
+
 def setup():
     """
     Creates all database tables if they do not exist.
@@ -106,7 +117,7 @@ def setup():
         db.connect()
     db.create_tables([
         War, Map, WarReport, MapStatic, MapDynamic,
-        Facility, Building, Region, Player, Task
+        Facility, Building, Region, Player, Task, ProductionCalculationCache
     ], safe=True)
     db.close()
 
