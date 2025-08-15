@@ -180,3 +180,5 @@ cython_debug/
 # Excel files
 *.xlsx
 *.xls
+
+dependencies/*
