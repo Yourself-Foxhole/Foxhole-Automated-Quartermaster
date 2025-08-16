@@ -116,4 +116,85 @@ Facilities often have recurring items that need to be done, there should be a re
 * Advanced Manufacturing
 
 
-## Clas
+## Class List Pre-Combination
+
+
+* BaseNode
+	* ProductionNode
+		* WorldStructureNode
+			* QueueableProductionNode
+				* RefineryNode
+				* FactoryNode
+				* MassProductionFactoryNode
+			* CharacterProductionNode
+				* GarageNode
+				* ShipyardNode
+				* ConstructionYardNode
+		* FacilityNode
+			* PowerBuilding
+				* DieselPowerPlant
+				* PowerStationBuilding
+			* ResourceBuilding
+				* OilWell
+				* WaterPump
+				* StationaryHarvester
+			* FacilityRefinery
+				* CoalRefinery
+				* OilRefinery
+				* ConcreteMixer
+			* ItemProductionBuilding
+				* AmmoFactory
+					* RocketBatteryWorkshop
+					* LargeShellFactory
+					* TripodFactory
+				* InfantryKitFactory
+					* SpecialIssueFirearmsAssembly
+					* SmallArmsWorkshop
+					* HeavyMunitionsFoundry
+				* MaterialsFactory
+					* AssemblyBay
+					* Forge
+					* MetalPress
+					* Smelter
+				* MetalworksFactory
+					* Recycler
+					* Blast Furnace
+					* EngineeringStation
+				* FacilityStorage
+					* ResourceTransferStation
+					* LiquidTransferStation
+					* MaterialTransferStation
+					* CrateTransferStation
+				* FacilityVehicleBuilding
+					* SmallAssemblyStation
+					* LargeAssemblyStation
+					* DryDock
+					* FieldModificationCenter
+					* A0E-9 Rocket Platform
+				* FacilityUtility  (These are primarily player actions that represent maintenance activities, i.e. did you put something away or check this.)
+					* MaintenanceTunnel
+					* PowerSwitch
+					* SmallGaugeTrain
+					* LargeGaugeTrain
+					* CraneStorage
+					* SiteInspection
+	
+
+
+## Combined Class List
+
+* BaseNode
+	* ProductionNode
+		* QueueableProductionNode
+			* RefineryNode
+			* FactoryNode
+			* MassProductionFactoryNode
+		* CharacterProductionNode
+		* FacilityNode
+			* PowerBuilding
+			* LiquidBuilding
+			* RawResourceBuilding
+			* MaterialBuilding
+			* CrateBuilding
+			* VehicleBuilding
+			* FacilityUtility

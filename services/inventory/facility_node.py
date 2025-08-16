@@ -1,26 +1,17 @@
-from typing import List, Dict, Any, Optional, Union
-from enum import Enum
+from typing import List, Dict, Any, Optional
 from services.inventory.production_nodes import ProductionNode
+from services.FoxholeDataObjects.recipe import OutputType, TechnologyLevel
 import time
+from enum import Enum
+from services.FoxholeDataObjects.production_time import calculate_completion_time, calculate_output_at_time
 
-class OutputType(Enum):
-    CRATES = "crates"
-    ITEM = "item"
-    RESOURCE = "resource"
-    LIQUID = "liquid"
-
-class TechnologyLevel(Enum):
-    NONE = "none"
-    TIER2 = "Tier2"
-    TIER3 = "Tier3"
-
-class QueueVisibility(Enum):
+class FacilityQueueVisibility(Enum):
     PUBLIC = "public"
     PRIVATE = "private"
 
-class PlayerQueue:
+class FacilityPlayerQueue:
     """Represents a player's queue in a facility building."""
-    def __init__(self, player_id: str, visibility: QueueVisibility = QueueVisibility.PRIVATE):
+    def __init__(self, player_id: str, visibility: FacilityQueueVisibility = FacilityQueueVisibility.PUBLIC):
         self.player_id = player_id
         self.visibility = visibility
         self.orders: List[Dict[str, Any]] = []
@@ -45,11 +36,17 @@ class FacilityBuilding(ProductionNode):
     MAX_ACTIVE_QUEUES = 5
     QUEUE_EXPIRY_HOURS = 24
 
-    def __init__(self, building_id: str, name: str, building_type: str,
-                 output_type: OutputType = OutputType.CRATES,
-                 technology_level: TechnologyLevel = TechnologyLevel.NONE,
-                 stockpile_limit: int = None,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        building_id: str,
+        name: str,
+        building_type: str,
+        output_type: OutputType = OutputType.CRATES,
+        technology_level: TechnologyLevel = TechnologyLevel.NONE,
+        stockpile_limit: int = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(building_id, name, *args, **kwargs)
         self.building_type = building_type
         self.output_type = output_type
@@ -61,30 +58,49 @@ class FacilityBuilding(ProductionNode):
         self.facility_inventory: Dict[str, int] = {}  # 15-slot inventory for misc items
 
         # Queue management
-        self.player_queues: Dict[str, PlayerQueue] = {}  # player_id -> PlayerQueue
+        self.player_queues: Dict[str, FacilityPlayerQueue] = {}  # player_id -> PlayerQueue
         self.active_queues: List[str] = []  # List of active player IDs (max 5)
 
-        # Recipe and upgrade system
-        self.base_recipes: List[str] = []  # Recipes available at base level
-        self.additional_recipes: List[str] = []  # Recipes added through upgrades
+        # Upgrade and recipe management
+        self.base_recipes: List[str] = []
+        self.additional_recipes: List[str] = []
         self.can_be_upgraded: bool = False
-        self.upgrade_options: List[str] = []  # List of possible upgrade building types
         self.is_upgraded: bool = False
-        self.upgrade_type: Optional[str] = None
+        self.upgrade_options: List[str] = []
 
-        # Production calculation
+        # Production rates
         self.production_rates: Dict[str, float] = {}  # recipe -> items per hour
 
+    def upgrade_to(self, building_type: str) -> bool:
+        """Upgrade the facility building to a specific type."""
+        if not self.can_be_upgraded:
+            return False
+        if self.is_upgraded:
+            return False  # Already upgraded
+        if building_type not in self.upgrade_options:
+            return False
+
+        self.is_upgraded = True
+        # Simulate fetching additional recipes from a database
+        additional_recipes = self.fetch_recipes_for_upgrade(building_type)
+        self.additional_recipes.extend(additional_recipes)
+        return True
+
+    def fetch_recipes_for_upgrade(self, building_type: str) -> List[str]:
+        """Placeholder for fetching recipes from a database."""
+        # This would query the database in a real implementation
+        return [f"Recipe for {building_type}"]
+
     def get_all_recipes(self) -> List[str]:
-        """Get all available recipes (base + additional from upgrades)."""
+        """Get all available recipes (base + additional)."""
         return self.base_recipes + self.additional_recipes
 
-    def add_player_queue(self, player_id: str, visibility: QueueVisibility = QueueVisibility.PRIVATE) -> bool:
+    def add_player_queue(self, player_id: str, visibility: FacilityQueueVisibility = FacilityQueueVisibility.PRIVATE) -> bool:
         """Add a new player queue. Returns True if successful."""
         if player_id in self.player_queues:
             return False  # Queue already exists
 
-        self.player_queues[player_id] = PlayerQueue(player_id, visibility)
+        self.player_queues[player_id] = FacilityPlayerQueue(player_id, visibility)
         return True
 
     def activate_queue(self, player_id: str) -> bool:
@@ -122,44 +138,12 @@ class FacilityBuilding(ProductionNode):
 
         return expired_players
 
-    def _move_queue_to_stockpile(self, queue: PlayerQueue):
+    def _move_queue_to_stockpile(self, queue: FacilityPlayerQueue):
         """Move items from expired queue to facility stockpile, deleting overflow."""
         for order in queue.orders:
             # This would need to be implemented based on specific order structure
             # For now, just a placeholder
             pass
-
-    def calculate_completion_time(self, recipe: str, quantity: int) -> float:
-        """Calculate when a recipe will be completed given current production rate."""
-        if recipe not in self.production_rates:
-            return 0.0
-
-        rate = self.production_rates[recipe]  # items per hour
-        if rate <= 0:
-            return float('inf')
-
-        hours_needed = quantity / rate
-        return time.time() + (hours_needed * 3600)
-
-    def calculate_stockpile_at_time(self, target_time: float) -> Dict[str, int]:
-        """Calculate what will be in the facility stockpile at a given future time."""
-        # This would implement production simulation
-        # For now, return current stockpile
-        return self.facility_stockpile.copy()
-
-    def upgrade_to(self, upgrade_type: str) -> bool:
-        """Upgrade this building to a specific type."""
-        if not self.can_be_upgraded:
-            return False
-        if self.is_upgraded:
-            return False  # Already upgraded
-        if upgrade_type not in self.upgrade_options:
-            return False
-
-        self.is_upgraded = True
-        self.upgrade_type = upgrade_type
-        # Additional recipes would be added based on upgrade type
-        return True
 
     def get_total_storage_capacity(self) -> Dict[str, int]:
         """Get total storage capacity including all player queues."""
@@ -173,7 +157,8 @@ class FacilityBuilding(ProductionNode):
         }
 
     def get_status(self) -> str:
-        return self.status
+        """Placeholder for building status."""
+        return "operational"
 
     def get_inventory(self) -> Dict[str, int]:
         """Return aggregated inventory from all storage locations."""
@@ -212,18 +197,48 @@ class FacilityStatusBoard:
         summary = {
             "facility_status": self.facility_node.status,
             "buildings": [
-                {"name": b.location_name, "type": b.building_type, "status": b.get_status()} for b in self.facility_node.buildings
+                {
+                    "name": b.location_name,
+                    "type": b.building_type,
+                    "status": b.get_status(),
+                }
+                for b in self.facility_node.buildings
             ],
             "tasks": [
                 {"description": t.description, "status": t.status} for t in self.facility_node.tasks
-            ]
+            ],
         }
         return summary
 
 class FacilityNode(ProductionNode):
     """Represents a player-built facility, aggregates buildings and tasks, exposes only itself to the graph."""
-    def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type=None, production_type=None, facility_type=None, process_type=None, process_label=None):
-        super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
+    def __init__(
+        self,
+        node_id: str,
+        location_name: str,
+        unit_size: str = "crate",
+        base_type=None,
+        production_type=None,
+        facility_type=None,
+        process_type=None,
+        process_label=None,
+        output_type: Optional[str] = None,
+        building_id: Optional[str] = None,
+    ):
+        super().__init__(
+            node_id,
+            location_name,
+            unit_size,
+            base_type,
+            production_type,
+            facility_type,
+            process_type,
+            process_label,
+        )
+        self.output_type = output_type
+        self.building_id = building_id
+
+        # Initialize attributes
         self.buildings: List[FacilityBuilding] = []
         self.tasks: List[FacilityTask] = []
         self.status_board = FacilityStatusBoard(self)
@@ -249,277 +264,71 @@ class FacilityNode(ProductionNode):
         return self.edges
 
 class PowerBuilding(FacilityBuilding):
-    """Base class for power-related buildings."""
+    """Represents power-related buildings."""
     pass
 
-class DieselPowerPlant(PowerBuilding):
-    """Diesel Power Plant."""
+class LiquidBuilding(FacilityBuilding):
+    """Represents buildings handling liquids (e.g., Oil Well, Water Pump)."""
+    def __init__(self, *args, pipeline_input: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pipeline_input = pipeline_input
+
+class RawResourceBuilding(FacilityBuilding):
+    """Represents raw resource extraction buildings."""
     pass
 
-class PowerStationBuilding(PowerBuilding):
-    """Power Station."""
+class MaterialBuilding(FacilityBuilding):
+    """Represents material production buildings."""
+    def __init__(
+        self,
+        building_id: str,
+        name: str,
+        building_type: str,
+        output_type: OutputType = OutputType.CRATES,
+        technology_level: TechnologyLevel = TechnologyLevel.NONE,
+        stockpile_limit: int = None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            building_id,
+            name,
+            building_type,
+            output_type,
+            technology_level,
+            stockpile_limit,
+            *args,
+            **kwargs,
+        )
+
+    def calculate_production_rate(self, recipe: str, quantity: int) -> float:
+        """Calculate the production rate for a given recipe and quantity."""
+        if recipe not in self.base_recipes + self.additional_recipes:
+            return 0.0
+
+        # Placeholder logic for production rate calculation
+        return quantity / 10.0  # Example: 10 units per hour
+
+    def simulate_production(self, recipe: str, hours: int) -> int:
+        """Simulate production for a given recipe over a number of hours."""
+        rate = self.calculate_production_rate(recipe, 1)
+        return int(rate * hours)
+
+class CrateBuilding(FacilityBuilding):
+    """Represents buildings handling crates."""
     pass
 
-class ResourceBuilding(FacilityBuilding):
-    """Base class for resource extraction buildings."""
+class VehicleBuilding(FacilityBuilding):
+    """Represents vehicle-related buildings."""
     pass
 
-class OilWell(ResourceBuilding):
-    """Oil Well."""
-    pass
+class AdvancedProductionBuilding(FacilityBuilding):
+    """Represents advanced structures and buildings with unique behaviors.
 
-class WaterPump(ResourceBuilding):
-    """Water Pump."""
-    pass
-
-class StationaryHarvester(ResourceBuilding):
-    """Stationary Harvester."""
-    pass
-
-class FacilityRefinery(FacilityBuilding):
-    """Base class for refinery buildings."""
-    pass
-
-class CoalRefinery(FacilityRefinery):
-    """Coal Refinery."""
-    pass
-
-class OilRefinery(FacilityRefinery):
-    """Oil Refinery."""
-    pass
-
-class ConcreteMixer(FacilityRefinery):
-    """Concrete Mixer."""
-    pass
-
-class ItemProductionBuilding(FacilityBuilding):
-    """Base class for item production buildings."""
-    pass
-
-class AmmoFactory(ItemProductionBuilding):
-    """Ammo Factory with upgrade system."""
-
-    def __init__(self, building_id: str, name: str, *args, **kwargs):
-        super().__init__(building_id, name, "AmmoFactory",
-                        output_type=OutputType.CRATES,
-                        technology_level=TechnologyLevel.NONE,
-                        *args, **kwargs)
-
-        # Base ammo factory recipes (these would come from static data)
-        self.base_recipes = [
-            # Add more base recipes as needed
-        ]
-
-        # Upgrade system
-        self.can_be_upgraded = True
-        self.upgrade_options = [
-            "RocketBatteryWorkshop",
-            "LargeShellFactory",
-            "TripodFactory"
-        ]
-
-    def upgrade_to_rocket_battery_workshop(self) -> bool:
-        """Upgrade to Rocket Battery Workshop."""
-        if self.upgrade_to("RocketBatteryWorkshop"):
-            self.additional_recipes.extend([
-                # Add rocket-specific recipes
-            ])
-            return True
-        return False
-
-    def upgrade_to_large_shell_factory(self) -> bool:
-        """Upgrade to Large Shell Factory."""
-        if self.upgrade_to("LargeShellFactory"):
-            self.additional_recipes.extend([
-                "120mm",
-                "150mm",
-                "300mm",
-                # Add large shell recipes
-            ])
-            return True
-        return False
-
-    def upgrade_to_tripod_factory(self) -> bool:
-        """Upgrade to Tripod Factory."""
-        if self.upgrade_to("TripodFactory"):
-            self.additional_recipes.extend([
-                "Tripod",
-                "Tripod Weapon Systems",
-                # Add tripod recipes
-            ])
-            return True
-        return False
-
-class RocketBatteryWorkshop(AmmoFactory):
-    """Rocket Battery Workshop - upgraded Ammo Factory."""
-
-    def __init__(self, building_id: str, name: str, *args, **kwargs):
-        super().__init__(building_id, name, *args, **kwargs)
-        self.building_type = "RocketBatteryWorkshop"
-        self.is_upgraded = True
-        self.upgrade_type = "RocketBatteryWorkshop"
-
-        # Add rocket-specific recipes
-        self.additional_recipes = [
-            "RPG Shell",
-            "Rocket",
-            # Add more rocket recipes
-        ]
-
-class LargeShellFactory(AmmoFactory):
-    """Large Shell Factory - upgraded Ammo Factory."""
-
-    def __init__(self, building_id: str, name: str, *args, **kwargs):
-        super().__init__(building_id, name, *args, **kwargs)
-        self.building_type = "LargeShellFactory"
-        self.is_upgraded = True
-        self.upgrade_type = "LargeShellFactory"
-
-        # Add large shell recipes
-        self.additional_recipes = [
-            "120mm",
-            "150mm",
-            "300mm",
-            # Add more large shell recipes
-        ]
-
-
-class TripodFactory(AmmoFactory):
-    """Tripod Factory - upgraded Ammo Factory."""
-
-    def __init__(self, building_id: str, name: str, *args, **kwargs):
-        super().__init__(building_id, name, *args, **kwargs)
-        self.building_type = "TripodFactory"
-        self.is_upgraded = True
-        self.upgrade_type = "TripodFactory"
-
-        # Add tripod recipes
-        self.additional_recipes = [
-            "Tripod",
-            "Tripod Weapon Systems",
-            # Add more tripod recipes
-        ]
-
-class InfantryKitFactory(ItemProductionBuilding):
-    """Infantry Kit Factory."""
-    pass
-
-class SpecialIssueFirearmsAssembly(InfantryKitFactory):
-    """Special Issue Firearms Assembly."""
-    pass
-
-class SmallArmsWorkshop(InfantryKitFactory):
-    """Small Arms Workshop."""
-    pass
-
-class HeavyMunitionsFoundry(InfantryKitFactory):
-    """Heavy Munitions Foundry."""
-    pass
-
-class MaterialsFactory(ItemProductionBuilding):
-    """Materials Factory."""
-    pass
-
-class AssemblyBay(MaterialsFactory):
-    """Assembly Bay."""
-    pass
-
-class Forge(MaterialsFactory):
-    """Forge."""
-    pass
-
-class MetalPress(MaterialsFactory):
-    """Metal Press."""
-    pass
-
-class Smelter(MaterialsFactory):
-    """Smelter."""
-    pass
-
-class MetalworksFactory(ItemProductionBuilding):
-    """Metalworks Factory."""
-    pass
-
-class Recycler(MetalworksFactory):
-    """Recycler."""
-    pass
-
-class BlastFurnace(MetalworksFactory):
-    """Blast Furnace."""
-    pass
-
-class EngineeringStation(MetalworksFactory):
-    """Engineering Station."""
-    pass
-
-class FacilityStorage(FacilityBuilding):
-    """Base class for facility storage buildings."""
-    pass
-
-class ResourceTransferStation(FacilityStorage):
-    """Resource Transfer Station."""
-    pass
-
-class LiquidTransferStation(FacilityStorage):
-    """Liquid Transfer Station."""
-    pass
-
-class MaterialTransferStation(FacilityStorage):
-    """Material Transfer Station."""
-    pass
-
-class CrateTransferStation(FacilityStorage):
-    """Crate Transfer Station."""
-    pass
-
-class FacilityVehicleBuilding(FacilityBuilding):
-    """Base class for vehicle-related buildings."""
-    pass
-
-class SmallAssemblyStation(FacilityVehicleBuilding):
-    """Small Assembly Station."""
-    pass
-
-class LargeAssemblyStation(FacilityVehicleBuilding):
-    """Large Assembly Station."""
-    pass
-
-class DryDock(FacilityVehicleBuilding):
-    """Dry Dock."""
-    pass
-
-class FieldModificationCenter(FacilityVehicleBuilding):
-    """Field Modification Center."""
-    pass
-
-class A0E9RocketPlatform(FacilityVehicleBuilding):
-    """A0E-9 Rocket Platform."""
+    At the moment this is things like the Rocket (nuke), Dry Dock,
+     and Advanced Structure Components"""
     pass
 
 class FacilityUtility(FacilityBuilding):
-    """Base class for utility/maintenance buildings."""
-    pass
-
-class MaintenanceTunnel(FacilityUtility):
-    """Maintenance Tunnel."""
-    pass
-
-class PowerSwitch(FacilityUtility):
-    """Power Switch."""
-    pass
-
-class SmallGaugeTrain(FacilityUtility):
-    """Small Gauge Train."""
-    pass
-
-class LargeGaugeTrain(FacilityUtility):
-    """Large Gauge Train."""
-    pass
-
-class CraneStorage(FacilityUtility):
-    """Crane Storage."""
-    pass
-
-class SiteInspection(FacilityUtility):
-    """Site Inspection."""
+    """Represents utility/maintenance buildings."""
     pass

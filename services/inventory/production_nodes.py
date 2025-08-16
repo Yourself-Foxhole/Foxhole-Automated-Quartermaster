@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any, Protocol
-from services.production_calculator.process_types import ProductionType, FacilityType, ProcessType, PRODUCTION_PROCESS_MAP
+from services.FoxholeDataObjects.processes import ProductionType, FacilityType, ProcessType, PRODUCTION_PROCESS_MAP
 from enum import Enum
 from services.inventory.facility_node import FacilityNode
 
@@ -59,11 +59,7 @@ class ProductionNode(BaseNode, ProductionProcessSupport):
     def supports_production_process(self, process_label: str) -> bool:
         return process_label in self.get_production_processes()
 
-class WorldStructureNode(ProductionNode):
-    """Represents a world structure (production-capable only)."""
-    # No need for pass, inherits everything
-
-class QueueableProductionNode(WorldStructureNode):
+class QueueableProductionNode(ProductionNode):
     QUEUE_EXPIRY_WARNING_SECONDS = 15 * 60  # 15 minutes before expiration
 
     def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type: BaseType = BaseType.PRODUCTION,
@@ -266,37 +262,16 @@ class MassProductionFactoryNode(QueueableProductionNode):
             }
 
 
-class CharacterProductionNode(WorldStructureNode):
+class CharacterProductionNode(ProductionNode):
     def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type: BaseType = BaseType.PRODUCTION,
                  production_type: ProductionType | None = None, facility_type: FacilityType | None = None,
-                 process_type: ProcessType | None = None, process_label: str | None = None):
+                 process_type: ProcessType | None = None, process_label: str | None = None,
+                 supported_processes: list[str] | None = None):
         super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
         self.instant_build: bool = True  # disables queue logic
+        if supported_processes:
+            self.set_production_processes(supported_processes)
 
     def build_item(self, item: str, quantity: int):
         # Simulate instant build
         self.inventory[item] = self.inventory.get(item, 0) + quantity
-
-class GarageNode(CharacterProductionNode):
-    SUPPORTED_PROCESSES = ["Vehicle::Garage"]
-    def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type: BaseType = BaseType.PRODUCTION,
-                 production_type: ProductionType | None = None, facility_type: FacilityType | None = None,
-                 process_type: ProcessType | None = None, process_label: str | None = None):
-        super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
-        self.set_production_processes(self.SUPPORTED_PROCESSES)
-
-class ShipyardNode(CharacterProductionNode):
-    SUPPORTED_PROCESSES = ["Ship::Shipyard"]
-    def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type: BaseType = BaseType.PRODUCTION,
-                 production_type: ProductionType | None = None, facility_type: FacilityType | None = None,
-                 process_type: ProcessType | None = None, process_label: str | None = None):
-        super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
-        self.set_production_processes(self.SUPPORTED_PROCESSES)
-
-class ConstructionYardNode(CharacterProductionNode):
-    SUPPORTED_PROCESSES = ["Shippable::ConstructionYard"]
-    def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type: BaseType = BaseType.PRODUCTION,
-                 production_type: ProductionType | None = None, facility_type: FacilityType | None = None,
-                 process_type: ProcessType | None = None, process_label: str | None = None):
-        super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
-        self.set_production_processes(self.SUPPORTED_PROCESSES)

@@ -7,26 +7,18 @@ from typing import Optional
 # Peewee DB integration for caching
 from data.db.db import ProductionCalculationCache, initialize_db
 import datetime
+from services.inventory.production_nodes import OutputType, TechnologyLevel
+from services.FoxholeDataObjects.recipe import Recipe
 
 class ProductionNode:
-    def __init__(self, name: str, recipes: List[dict] = None, category: str = None):
+    def __init__(self, name: str, recipes: List[Recipe] = None, category: str = None):
         """
         :param name: Name of the item/material
-        :param recipes: List of recipes, each a dict with keys:
-            - 'inputs': dict of input node names and their required quantities
-            - 'using': dict of facility/requirements (e.g. {"facility": "Blast Furnace", "power": 2})
-            - 'cycle_time': time in seconds for one production cycle
-            - 'output_per_cycle': number of this item produced per cycle
-            - 'tier': (optional) the tech tier required to unlock this recipe
+        :param recipes: List of Recipe objects
         :param category: Category of the node (resource, refined, material, product)
         """
         self.name = name
-        # Support passing a single dict as a recipe (auto-wrap as a recipe with 'inputs')
-        if recipes is not None and not isinstance(recipes, list):
-            # If it's a dict, wrap it
-            self.recipes = [{"inputs": recipes}]
-        else:
-            self.recipes = recipes or []
+        self.recipes = recipes or []
         self.category = category
 
     def __repr__(self):
@@ -39,7 +31,7 @@ class ProductionNode:
         """
         unlocked = []
         for i, recipe in enumerate(self.recipes):
-            tier = recipe.get('tier')
+            tier = recipe.tier
             if tier is None or tier in unlocked_tiers:
                 unlocked.append(i)
         return unlocked
@@ -59,7 +51,7 @@ class ProductionGraph:
             self.graph.add_node(node.name, node=node)
             if node.recipes:
                 for recipe in node.recipes:
-                    for input_name, qty in recipe.get('inputs', {}).items():
+                    for input_name, qty in recipe.inputs.items():
                         self.graph.add_edge(input_name, node.name, quantity=qty)
         else:
             # Multiple recipes: create parent and subnodes
@@ -72,31 +64,26 @@ class ProductionGraph:
                 # Connect parent to subnode
                 self.graph.add_edge(node.name, subnode_name, is_subnode=True)
                 # Handle multiple outputs: connect subnode to all outputs
-                outputs = recipe.get('outputs') or [node.name]
+                outputs = recipe.outputs or [node.name]
                 if isinstance(outputs, str):
                     outputs = [outputs]
                 for output in outputs:
                     self.graph.add_edge(subnode_name, output, is_recipe_output=True)
                 # Connect subnode to its inputs
-                for input_name, qty in recipe.get('inputs', {}).items():
+                for input_name, qty in recipe.inputs.items():
                     self.graph.add_edge(input_name, subnode_name, quantity=qty)
 
-    def add_production(self, output: str, recipe: Dict[str, float] = None):
-        """
-        Add a new recipe to the node, or update the default recipe if none exists.
-        :param output: Name of the output node
-        :param recipe: Dict of input node names and their required quantities (optional)
-        """
+    def add_production(self, output: str, recipe: Recipe = None):
         node = self.graph.nodes[output].get('node')
         if node is None:
             raise ValueError(f"Node '{output}' does not exist in the graph.")
         if recipe:
             node.recipes.append(recipe)
-            for input_name, qty in recipe.get('inputs', {}).items():
+            for input_name, qty in recipe.inputs.items():
                 self.graph.add_edge(input_name, output, quantity=qty)
         elif node.recipes:
             # Add edges for the default recipe if not already present
-            for input_name, qty in node.recipes[0].get('inputs', {}).items():
+            for input_name, qty in node.recipes[0].inputs.items():
                 self.graph.add_edge(input_name, output, quantity=qty)
 
     def resolve_base_materials(self, node_name: str, amount: float = 1.0, visited=None
@@ -122,15 +109,15 @@ class ProductionGraph:
         if not node.recipes or recipe_index >= len(node.recipes):
             return {"materials": {node_name: amount}, "total_time": 0, "cycles": 0, "byproducts": {}}
         recipe = node.recipes[recipe_index]
-        inputs = recipe.get('inputs', {})
-        outputs = recipe.get('outputs') or {node.name: recipe.get('output_per_cycle', 1)}
+        inputs = recipe.inputs
+        outputs = recipe.outputs or {node.name: getattr(recipe, 'output_per_cycle', 1)}
         if isinstance(outputs, list):
             # Convert list to dict with 1 per output
             outputs = {k: 1 for k in outputs}
-        cycle_time = recipe.get('cycle_time', 0)
-        using = recipe.get('using', {})
+        cycle_time = recipe.cycle_time
+        using = recipe.using
         # Determine how many cycles are needed for the requested output, considering byproducts
-        output_qty = outputs.get(node_name, recipe.get('output_per_cycle', 1))
+        output_qty = outputs.get(node_name, getattr(recipe, 'output_per_cycle', 1))
         # Use byproducts if available
         used_byproduct = min(byproducts.get(node_name, 0), amount)
         amount_needed = amount - used_byproduct
@@ -267,13 +254,13 @@ class ProductionGraph:
             print(f"{prefix}{node_name} (category: {node.category}, amount: {amount}) [NO RECIPE]")
             return
         recipe = node.recipes[recipe_index]
-        inputs = recipe.get('inputs', {})
-        outputs = recipe.get('outputs') or {node.name: recipe.get('output_per_cycle', 1)}
+        inputs = recipe.inputs
+        outputs = recipe.outputs or {node.name: recipe.get('output_per_cycle', 1)}
         if isinstance(outputs, list):
             outputs = {k: 1 for k in outputs}
-        cycle_time = recipe.get('cycle_time', 0)
+        cycle_time = recipe.cycle_time
         output_per_cycle = outputs.get(node_name, recipe.get('output_per_cycle', 1))
-        using = recipe.get('using', {})
+        using = recipe.using
         import math
         # Use byproducts if available
         used_byproduct = min(byproducts.get(node_name, 0), amount)
@@ -357,38 +344,29 @@ if __name__ == "__main__":
     g.add_node(ProductionNode("Coal", category="resource"))
     g.add_node(ProductionNode("Rare Metal", category="resource"))
     g.add_node(ProductionNode("Power", category="resource"))
-    g.add_node(ProductionNode("BMAT", [{"inputs": {"Salvage": 2}}], category="refined"))
-    g.add_node(ProductionNode("RMAT", [{"inputs": {"Components": 20}}], category="refined"))
-    g.add_node(ProductionNode("Coke", [{"inputs": {"Coal": 200}}], category="refined"))
-    g.add_node(ProductionNode("Petrol", [{"inputs": {"Oil": 50}}], category="refined"))
-    g.add_node(ProductionNode("Heavy Oil", [{"inputs": {"Oil": 50, "Power": 1.5}}], category="refined"))
-    g.add_node(ProductionNode("CMAT", [{"inputs": {"Salvage": 10, "Power": 2}}], category="material"))
-    g.add_node(ProductionNode("Metal Beam", [{"inputs": {"Salvage": 25, "Power": 2}}], category="material"))
-    g.add_node(ProductionNode("PCMAT", [{"inputs": {"CMAT": 15, "Metal Beam": 1, "Heavy Oil": 10}}], category="material"))
-    g.add_node(ProductionNode("RMAT", [{"inputs": {"Components": 20}}], category="material"))
-    g.add_node(ProductionNode("AMAT1", [{"inputs": {"Salvage": 15, "Coke": 75, "Power": 2}}], category="material"))
-    g.add_node(ProductionNode("AMAT2", [{"inputs": {"Salvage": 15, "Petrol": 50, "Power": 2}}], category="material"))
-    g.add_node(ProductionNode("AMAT3", [{"inputs": {"CMAT": 3, "Sulfur": 20, "Power": 5}}], category="material"))
-    g.add_node(ProductionNode("AMAT4", [{"inputs": {"PCMAT": 1, "Heavy Oil": 66, "Power": 5}}], category="material"))
-    g.add_node(ProductionNode("AMAT5", [{"inputs": {"Steel": 3, "Coke": 245, "AMAT1": 10, "AMAT2": 10, "Power": 8}}], category="material"))
-    g.add_node(ProductionNode("Steel", [{"inputs": {"PCMAT": 3, "Coke": 200, "Sulfur": 65, "Heavy Oil": 35, "Power": 9}}], category="material"))
-    g.add_node(ProductionNode("Rare Alloy", {"Rare Metal": 20, "PCMAT": 5, "Coke": 60, "Power": 10}, category="material"))
-    g.add_node(ProductionNode("Thermal Shielding", {"CMAT": 2, "AMAT4": 5, "Power": 4}, category="material"))
-    g.add_node(ProductionNode("Naval Hull Segments", {"PCMAT": 60, "AMAT1": 2, "AMAT2": 2
-        , "AMAT4": 10, "Rare Alloy": 4, "Thermal Shielding": 4, "Power": 2}, category="material"))
-    g.add_node(ProductionNode("Naval Shell Plating", {"CMAT": 2, "Thermal Shielding": 1, "Power": 2}, category="material"))
-    g.add_node(ProductionNode("Naval Turbine Components", {"AMAT5": 20, "Rare Alloy": 20, "Power": 2}, category="material"))
-    g.add_node(
-        ProductionNode(
-            "Gallagher Outlaw Mk. II",
-            {"PCMAT": 10, "AMAT1": 10, "AMAT4": 10, "Gallagher Brigand Mk. I": 1},
-            category="product",
-        )
-    )
-    g.add_node(ProductionNode("Gallagher Brigand Mk. I", {"RMAT": 150}, category="product"))
-    g.add_node(ProductionNode("Callahan", {"Naval Hull Segments": 20,
-                                           "Naval Shell Plating": 20, "Naval Turbine Components": 4}, category="product"))
-
+    g.add_node(ProductionNode("BMAT", [Recipe(inputs={"Salvage": 2}, outputs={"BMAT": 1}, using={}, cycle_time=60)], category="refined"))
+    g.add_node(ProductionNode("RMAT", [Recipe(inputs={"Components": 20}, outputs={"RMAT": 1}, using={}, cycle_time=60)], category="refined"))
+    g.add_node(ProductionNode("Coke", [Recipe(inputs={"Coal": 200}, outputs={"Coke": 1}, using={}, cycle_time=60)], category="refined"))
+    g.add_node(ProductionNode("Petrol", [Recipe(inputs={"Oil": 50}, outputs={"Petrol": 1}, using={}, cycle_time=60)], category="refined"))
+    g.add_node(ProductionNode("Heavy Oil", [Recipe(inputs={"Oil": 50, "Power": 1.5}, outputs={"Heavy Oil": 1}, using={}, cycle_time=60)], category="refined"))
+    g.add_node(ProductionNode("CMAT", [Recipe(inputs={"Salvage": 10, "Power": 2}, outputs={"CMAT": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Metal Beam", [Recipe(inputs={"Salvage": 25, "Power": 2}, outputs={"Metal Beam": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("PCMAT", [Recipe(inputs={"CMAT": 15, "Metal Beam": 1, "Heavy Oil": 10}, outputs={"PCMAT": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("RMAT", [Recipe(inputs={"Components": 20}, outputs={"RMAT": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("AMAT1", [Recipe(inputs={"Salvage": 15, "Coke": 75, "Power": 2}, outputs={"AMAT1": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("AMAT2", [Recipe(inputs={"Salvage": 15, "Petrol": 50, "Power": 2}, outputs={"AMAT2": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("AMAT3", [Recipe(inputs={"CMAT": 3, "Sulfur": 20, "Power": 5}, outputs={"AMAT3": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("AMAT4", [Recipe(inputs={"PCMAT": 1, "Heavy Oil": 66, "Power": 5}, outputs={"AMAT4": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("AMAT5", [Recipe(inputs={"Steel": 3, "Coke": 245, "AMAT1": 10, "AMAT2": 10, "Power": 8}, outputs={"AMAT5": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Steel", [Recipe(inputs={"PCMAT": 3, "Coke": 200, "Sulfur": 65, "Heavy Oil": 35, "Power": 9}, outputs={"Steel": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Rare Alloy", [Recipe(inputs={"Rare Metal": 20, "PCMAT": 5, "Coke": 60, "Power": 10}, outputs={"Rare Alloy": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Thermal Shielding", [Recipe(inputs={"CMAT": 2, "AMAT4": 5, "Power": 4}, outputs={"Thermal Shielding": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Naval Hull Segments", [Recipe(inputs={"PCMAT": 60, "AMAT1": 2, "AMAT2": 2, "AMAT4": 10, "Rare Alloy": 4, "Thermal Shielding": 4, "Power": 2}, outputs={"Naval Hull Segments": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Naval Shell Plating", [Recipe(inputs={"CMAT": 2, "Thermal Shielding": 1, "Power": 2}, outputs={"Naval Shell Plating": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Naval Turbine Components", [Recipe(inputs={"AMAT5": 20, "Rare Alloy": 20, "Power": 2}, outputs={"Naval Turbine Components": 1}, using={}, cycle_time=60)], category="material"))
+    g.add_node(ProductionNode("Gallagher Outlaw Mk. II", [Recipe(inputs={"PCMAT": 10, "AMAT1": 10, "AMAT4": 10, "Gallagher Brigand Mk. I": 1}, outputs={"Gallagher Outlaw Mk. II": 1}, using={}, cycle_time=60)], category="product"))
+    g.add_node(ProductionNode("Gallagher Brigand Mk. I", [Recipe(inputs={"RMAT": 150}, outputs={"Gallagher Brigand Mk. I": 1}, using={}, cycle_time=60)], category="product"))
+    g.add_node(ProductionNode("Callahan", [Recipe(inputs={"Naval Hull Segments": 20, "Naval Shell Plating": 20, "Naval Turbine Components": 4}, outputs={"Callahan": 1}, using={}, cycle_time=60)], category="product"))
     # Add production relationships
     g.add_production("Gallagher Outlaw Mk. II")
     print(

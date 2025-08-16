@@ -130,3 +130,4 @@ PRODUCTION_PROCESS_MAP = {
     "AdvancedStructure::Facility::RocketPlatform": (FacilityType.ROCKET_SITE, ProcessType.DEFAULT),
     "AdvancedStructure::Facility::AdvancedStructureManufactory": (FacilityType.VEHICLE_FACTORY_1, ProcessType.ROCKET_ASSEMBLY),
 }
+
