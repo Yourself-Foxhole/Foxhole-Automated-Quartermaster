@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional, Any
 from services.inventory.production_nodes import (
-    BaseType
+    BaseType, BaseNode
 )
 from services.FoxholeDataObjects.processes import ProductionType, FacilityType, ProcessType, PRODUCTION_PROCESS_MAP
 
-class InventoryNode():
+class InventoryNode(BaseNode):
     def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type: BaseType = BaseType.ITEM_NODE):
         super().__init__(node_id, location_name, unit_size, base_type)
         self.inventory: Dict[str, int] = {}  # item_name -> quantity
