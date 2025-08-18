@@ -15,7 +15,8 @@ class TechnologyLevel(Enum):
 class Recipe:
     def __init__(self, inputs: Dict[str, int], outputs: Dict[str, int], using: Dict[str, Any], cycle_time: float,
                  tier: Optional[str] = None, output_type: OutputType = OutputType.CRATES,
-                 technology_level: TechnologyLevel = TechnologyLevel.NONE):
+                 technology_level: TechnologyLevel = TechnologyLevel.NONE,
+                 retrievable_as_crates: bool = True):
         self.inputs = inputs
         self.outputs = outputs
         self.using = using
@@ -23,8 +24,9 @@ class Recipe:
         self.tier = tier
         self.output_type = output_type
         self.technology_level = technology_level
+        self.retrievable_as_crates = retrievable_as_crates
 
     def __repr__(self):
         return (f"Recipe(inputs={self.inputs!r}, outputs={self.outputs!r}, using={self.using!r}, "
-                f"cycle_time={self.cycle_time!r}, tier={self.tier!r}, output_type={self.output_type!r}, technology_level={self.technology_level!r})")
-
+                f"cycle_time={self.cycle_time!r}, tier={self.tier!r}, output_type={self.output_type!r}, technology_level={self.technology_level!r}, "
+                f"retrievable_as_crates={self.retrievable_as_crates!r})")
