@@ -10,7 +10,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.inventory.facility_node import (
-    FacilityNode, FacilityBuilding, MaterialBuilding,
+    FacilityNode, FacilityBuilding,
     FacilityTrackingMode, FacilityTrackingFeatures, FacilityTrackingConfig,
     OutputType, TechnologyLevel, OperationalStatus
 )
@@ -51,11 +51,12 @@ def demo_tracking_modes():
         tracking_config=untracked_config
     )
 
-    factory_building = MaterialBuilding(
-        building_id="build_001",
-        name="Basic Materials Factory",
-        building_type="BasicMaterialsFactory"
+    factory_building = FacilityNode(
+        node_id="build_001",
+        location_name="Basic Materials Factory",
+        tracking_config=untracked_config
     )
+    factory_building.building_type = "BasicMaterialsFactory"
     factory_building.base_recipes = ["rifle", "basic_materials"]
     factory_building.facility_stockpile = {"rifle": 500, "basic_materials": 1000}
 
@@ -69,11 +70,12 @@ def demo_tracking_modes():
         tracking_config=outputs_only_config
     )
 
-    distribution_building = MaterialBuilding(
-        building_id="build_002",
-        name="Distribution Center",
-        building_type="AssemblyStation"
+    distribution_building = FacilityNode(
+        node_id="build_002",
+        location_name="Distribution Center",
+        tracking_config=outputs_only_config
     )
+    distribution_building.building_type = "AssemblyStation"
     distribution_building.base_recipes = ["equipment", "vehicles"]
     distribution_building.facility_stockpile = {"equipment": 200, "vehicles": 50}
 
@@ -87,11 +89,12 @@ def demo_tracking_modes():
         tracking_config=full_tracking_config
     )
 
-    advanced_building = MaterialBuilding(
-        building_id="build_003",
-        name="Advanced Assembly",
-        building_type="AdvancedAssemblyStation"
+    advanced_building = FacilityNode(
+        node_id="build_003",
+        location_name="Advanced Assembly",
+        tracking_config=full_tracking_config
     )
+    advanced_building.building_type = "AdvancedAssemblyStation"
     advanced_building.base_recipes = ["heavy_equipment", "advanced_materials"]
     advanced_building.facility_stockpile = {"heavy_equipment": 100, "advanced_materials": 300}
     advanced_building.facility_inventory = {"components": 50, "tools": 25}
@@ -135,11 +138,12 @@ def demo_request_driven_tracking():
     )
 
     # Add a production building
-    production_building = MaterialBuilding(
-        building_id="prod_001",
-        name="Material Producer",
-        building_type="MaterialFactory"
+    production_building = FacilityNode(
+        node_id="prod_001",
+        location_name="Material Producer",
+        tracking_config=untracked_config
     )
+    production_building.building_type = "MaterialFactory"
     production_building.base_recipes = ["basic_materials", "components", "fuel"]
     production_building.facility_stockpile = {
         "basic_materials": 2000,
@@ -182,11 +186,12 @@ def demo_progressive_tracking_adoption():
         tracking_config=FacilityTrackingConfig(mode=FacilityTrackingMode.UNTRACKED)
     )
 
-    building = MaterialBuilding(
-        building_id="prog_build_001",
-        name="Flexible Factory",
-        building_type="AdaptiveFactory"
+    building = FacilityNode(
+        node_id="prog_build_001",
+        location_name="Flexible Factory",
+        tracking_config=FacilityTrackingConfig(mode=FacilityTrackingMode.UNTRACKED)
     )
+    building.building_type = "AdaptiveFactory"
     facility.add_building(building)
 
     print("Phase 1 - Starting with untracked mode:")
@@ -240,30 +245,31 @@ def demo_mixed_facility_tracking():
     )
 
     # Building 1: Uses facility default
-    building1 = MaterialBuilding(
-        building_id="mixed_build_001",
-        name="Standard Factory",
-        building_type="StandardFactory"
+    building1 = FacilityNode(
+        node_id="mixed_build_001",
+        location_name="Standard Factory",
+        tracking_config=FacilityTrackingConfig(mode=FacilityTrackingMode.OUTPUTS_ONLY)
     )
+    building1.building_type = "StandardFactory"
 
     # Building 2: Has custom tracking config
-    building2 = MaterialBuilding(
-        building_id="mixed_build_002",
-        name="High-Detail Factory",
-        building_type="PrecisionFactory",
+    building2 = FacilityNode(
+        node_id="mixed_build_002",
+        location_name="High-Detail Factory",
         tracking_config=FacilityTrackingConfig(
             mode=FacilityTrackingMode.INPUTS_AND_OUTPUTS,
             enabled_features=[FacilityTrackingFeatures.POWER, FacilityTrackingFeatures.LIQUIDS]
         )
     )
+    building2.building_type = "PrecisionFactory"
 
     # Building 3: Minimal tracking override
-    building3 = MaterialBuilding(
-        building_id="mixed_build_003",
-        name="Simple Factory",
-        building_type="SimpleFactory",
+    building3 = FacilityNode(
+        node_id="mixed_build_003",
+        location_name="Simple Factory",
         tracking_config=FacilityTrackingConfig(mode=FacilityTrackingMode.UNTRACKED)
     )
+    building3.building_type = "SimpleFactory"
 
     facility.add_building(building1)
     facility.add_building(building2)

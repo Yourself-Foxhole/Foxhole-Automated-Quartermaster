@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional, Any, Protocol
 from services.FoxholeDataObjects.processes import ProductionType, FacilityType, ProcessType, PRODUCTION_PROCESS_MAP
 from enum import Enum
-from services.inventory.facility_node import FacilityNode
 
 class BaseType(Enum):
     RESOURCE = "Resource"
@@ -12,7 +11,8 @@ class BaseType(Enum):
     FACILITY = "Facility"
 
 class BaseNode:
-    def __init__(self, node_id: str, location_name: str, unit_size: str = "crate", base_type: BaseType = BaseType.ITEM_NODE):
+    def __init__(self, node_id: str, location_name: str, unit_size: str = "crate"
+                 , base_type: BaseType = BaseType.ITEM_NODE):
         self.node_id = node_id
         self.location_name = location_name
         self.unit_size = unit_size
