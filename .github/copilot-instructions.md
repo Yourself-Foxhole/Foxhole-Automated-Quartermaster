@@ -16,7 +16,7 @@ There is no source code, dependencies, or build configuration present yet. The r
 ### Current Repository Validation
 - Repository structure: `ls -la` shows only `.gitignore`, `LICENSE`, `README.md`
 - Git status: `git --no-pager status` - should show clean working directory
-- Python availability: `python3 --version` - Python 3.12.3 is available
+- Python availability: `python3 --version` - Python 3.13 is available
 - **DO NOT** attempt to build, test, or run code - no source code exists yet
 
 ### When Source Code is Added (Future)
@@ -118,7 +118,7 @@ ls -la
 
 # Check Python availability  
 python3 --version
-# Output: Python 3.12.3
+# Output: Python 3.13
 
 # Check pip availability
 pip3 --version  
@@ -180,7 +180,7 @@ git --no-pager log --oneline -5
 ## Development Environment Requirements
 
 ### System Requirements
-- Python 3.12+ (3.12.3 confirmed available)
+- Python 3.13+ 
 - pip package manager (24.0 confirmed available)
 - Git for version control
 - Internet connection for Discord API access
