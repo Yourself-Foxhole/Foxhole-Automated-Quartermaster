@@ -4,6 +4,28 @@ from services.FoxholeDataObjects.recipe import OutputType, TechnologyLevel
 import time
 from enum import Enum
 
+class InventoryManager:
+    """Manages a shared inventory for a facility."""
+    def __init__(self):
+        self.inventory: Dict[str, int] = {}
+
+    def get_inventory(self) -> Dict[str, int]:
+        """Returns a copy of the current inventory."""
+        return self.inventory.copy()
+
+    def add_item(self, item_name: str, quantity: int):
+        """Adds an item to the inventory."""
+        self.inventory[item_name] = self.inventory.get(item_name, 0) + quantity
+
+    def remove_item(self, item_name: str, quantity: int) -> bool:
+        """Removes an item from the inventory. Returns False if not enough items."""
+        if self.inventory.get(item_name, 0) >= quantity:
+            self.inventory[item_name] -= quantity
+            if self.inventory[item_name] == 0:
+                del self.inventory[item_name]
+            return True
+        return False
+
 class FacilityTrackingMode(Enum):
     """Defines the level of tracking for a facility node."""
     UNTRACKED = "untracked"  # Only track requested outputs from other nodes
@@ -183,7 +205,7 @@ class FacilityBuilding(ProductionNode):
     DEFAULT_INVENTORY_SLOTS = 15
     MAX_ACTIVE_QUEUES = 5
     QUEUE_EXPIRY_HOURS = 28
-    def __init__(self, building_id: str, name: str, building_type: str, output_type: OutputType = OutputType.CRATES,
+    def __init__(self, building_id: str, name: str, building_type: str, inventory_manager: InventoryManager, output_type: OutputType = OutputType.CRATES,
                  technology_level: TechnologyLevel = TechnologyLevel.NONE, stockpile_limit: int = None,
                  upgrade_type: Optional[str] = None, operational_status: OperationalStatus = OperationalStatus.PLANNED,
                  tracking_config: Optional[FacilityTrackingConfig] = None, disruptive_flag_required: int = 5,
@@ -191,6 +213,7 @@ class FacilityBuilding(ProductionNode):
                  *args, **kwargs):
         super().__init__(building_id, name, *args, **kwargs)
         self.building_type = building_type
+        self.inventory_manager = inventory_manager
         self.output_type = output_type
         self.technology_level = technology_level
         self.stockpile_limit = stockpile_limit or self.DEFAULT_STOCKPILE_LIMIT
@@ -217,7 +240,7 @@ class FacilityBuilding(ProductionNode):
         self.parent_node = None
 
     def get_inventory(self) -> Dict[str, int]:
-        return self.facility_inventory.copy()
+        return self.inventory_manager.get_inventory()
 
     def set_parent_node(self, parent):
         self.parent_node = parent
@@ -298,21 +321,16 @@ class FacilityBuilding(ProductionNode):
         return largest if largest > 0 else None
 
     def update_power_demand_from_orders(self):
-        """Update power demand to only use the largest order's usage."""
         largest = self.get_largest_power_order()
         self.power_demand = largest if largest else 0.0
 
     def enforce_power_building_order_logic(self):
-        """Ensure only one active order for power buildings, unlimited queue."""
-        # Only allow one active queue for power buildings
         if self.building_type == 'power':
             if len(self.active_queues) > 1:
-                # Deactivate all but the first active queue
                 for pid in self.active_queues[1:]:
                     self.deactivate_queue(pid)
 
     def update_resource_consumption(self, total_demand: float, total_supply: float):
-        """Update resource consumption for power buildings."""
         if self.building_type == 'power':
             if total_demand == 0:
                 self.resource_consumption_multiplier = 0.0
@@ -334,7 +352,6 @@ class FacilityBuilding(ProductionNode):
         return status
 
     def update_power_state(self):
-        """Update power status and production rate based on supply/demand."""
         if self.power_demand == 0:
             self.power_status = "normal"
             self.is_powered = True
@@ -351,7 +368,6 @@ class FacilityBuilding(ProductionNode):
             self.is_powered = True
 
     def get_effective_production_rate(self) -> float:
-        """Return production rate multiplier based on power status."""
         self.update_power_state()
         if self.power_status == "shutdown":
             return 0.0
@@ -359,11 +375,6 @@ class FacilityBuilding(ProductionNode):
             return self.power_supply / self.power_demand if self.power_demand > 0 else 1.0
         else:
             return 1.0
-    def get_inventory(self) -> Dict[str, int]:
-        total_inventory = self.facility_stockpile.copy()
-        for item, qty in self.facility_inventory.items():
-            total_inventory[item] = total_inventory.get(item, 0) + qty
-        return total_inventory
 
 class LiquidBuilding(FacilityBuilding):
     def __init__(self, building_id: str, name: str, building_type: str, output_type: OutputType = OutputType.CRATES, technology_level: TechnologyLevel = TechnologyLevel.NONE, stockpile_limit: int = None, upgrade_type: Optional[str] = None, operational_status: OperationalStatus = OperationalStatus.PLANNED, input_inlet: int = 0, output_inlet: int = 0, pipe_connections: Optional[list['LiquidBuilding']] = None, internal_liquid_storage_capacity: Optional[int] = None, needs_liquid_container: bool = False, liquid_container_refill: Optional[int] = None, tracking_config: Optional[FacilityTrackingConfig] = None, disruptive_flag_required: int = 5, power_demand: float = 0.0, power_supply: float = 0.0, *args, **kwargs):
@@ -455,7 +466,7 @@ class FacilityNode(ProductionNode):
         self.status_board = FacilityStatusBoard(self)
         self.tracking_config: FacilityTrackingConfig = tracking_config or FacilityTrackingConfig()
         self.disassembled_crates: bool = disassembled_crates
-        self.facility_inventory: Dict[str, int] = {}  # Centralized rolled-up inventory
+        self.inventory_manager = InventoryManager()
 
     def add_building(self, building: FacilityBuilding):
         if (building.tracking_config.mode == FacilityTrackingMode.UNTRACKED and
@@ -463,20 +474,9 @@ class FacilityNode(ProductionNode):
             building.tracking_config = self.tracking_config
         building.set_parent_node(self)
         self.buildings.append(building)
-        self.update_inventory_from_building(building)
-
-    def update_inventory_from_building(self, building: FacilityBuilding):
-        # Recalculate the rolled-up inventory for the whole facility
-        total_inventory: Dict[str, int] = {}
-        for b in self.buildings:
-            b_inv = b.get_inventory()
-            for item, qty in b_inv.items():
-                total_inventory[item] = total_inventory.get(item, 0) + qty
-        self.facility_inventory = total_inventory
 
     def get_inventory(self) -> Dict[str, int]:
-        # Return the up-to-date rolled-up inventory
-        return self.facility_inventory.copy()
+        return self.inventory_manager.get_inventory()
 
     def get_tracking_summary(self) -> Dict[str, Any]:
         return {
@@ -499,12 +499,7 @@ class FacilityNode(ProductionNode):
         self.tasks.append(task)
 
     def aggregate_inventory(self) -> Dict[str, int]:
-        total_inventory: Dict[str, int] = {}
-        for building in self.buildings:
-            building_inventory = building.get_inventory()
-            for item, qty in building_inventory.items():
-                total_inventory[item] = total_inventory.get(item, 0) + qty
-        return total_inventory
+        return self.inventory_manager.get_inventory()
 
     def aggregate_status(self) -> Dict[str, Any]:
         return self.status_board.get_status_summary()
@@ -519,12 +514,6 @@ class FacilityNode(ProductionNode):
                 building.add_output_request(item, quantity, requesting_facility_id)
                 break
 
-    def get_inventory(self) -> Dict[str, int]:
-        """Return the inventory for this node, compatible with FacilityBuilding."""
-        total_inventory = getattr(self, 'facility_stockpile', {}).copy()
-        for item, qty in getattr(self, 'facility_inventory', {}).items():
-            total_inventory[item] = total_inventory.get(item, 0) + qty
-        return total_inventory
 class DisruptivePlacementStatus:
     """Encapsulates disruptive placement flagging and state for a facility building."""
     def __init__(self, required_flags: int = 5):

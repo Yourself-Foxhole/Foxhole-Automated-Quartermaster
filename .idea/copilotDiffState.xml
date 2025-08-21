@@ -19,6 +19,15 @@
             </PendingDiffInfo>
           </value>
         </entry>
+        <entry key="$PROJECT_DIR$/services/inventory/order.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/services/inventory/order.py" />
+              <option name="originalContent" value="from typing import Optional&#10;from services.inventory.inventory_graph import InventoryNode&#10;&#10;class Order:&#10;    def __init__(self, item: str, quantity: int, source: InventoryNode, target: InventoryNode, status: str = &quot;pending&quot;, created_at: Optional[float] = None):&#10;        self.item = item&#10;        self.quantity = quantity&#10;        self.source = source&#10;        self.target = target&#10;        self.status = status  # e.g., 'pending', 'in_transit', 'fulfilled', 'cancelled'&#10;        self.created_at = created_at&#10;        self.updated_at = created_at&#10;&#10;    def update_status(self, new_status: str, timestamp: Optional[float] = None):&#10;        self.status = new_status&#10;        if timestamp:&#10;            self.updated_at = timestamp&#10;&#10;    def __repr__(self):&#10;        return f&quot;&lt;Order {self.item} x{self.quantity} {self.source.node_id}-&gt;{self.target.node_id} status={self.status}&gt;&quot;&#10;&#10;" />
+              <option name="updatedContent" value="from typing import Optional&#10;from services.inventory.inventory_graph import InventoryNode&#10;&#10;class Order:&#10;    def __init__(self, item: str, quantity: int, source: InventoryNode, target: InventoryNode, status: str = &quot;pending&quot;, created_at: Optional[float] = None, order_type: str = &quot;production&quot;, blocking_resources: Optional[list] = None):&#10;        self.item = item&#10;        self.quantity = quantity&#10;        self.source = source&#10;        self.target = target&#10;        self.status = status  # e.g., 'pending', 'in_transit', 'fulfilled', 'cancelled', 'blocked', 'queued'&#10;        self.created_at = created_at&#10;        self.updated_at = created_at&#10;        self.type = order_type  # 'production', 'transport', 'request', etc.&#10;        self.blocking_resources = blocking_resources if blocking_resources is not None else []&#10;&#10;    def update_status(self, new_status: str, timestamp: Optional[float] = None):&#10;        self.status = new_status&#10;        if timestamp:&#10;            self.updated_at = timestamp&#10;&#10;    def __repr__(self):&#10;        return f&quot;&lt;Order {self.item} x{self.quantity} {self.source.node_id}-&gt;{self.target.node_id} type={self.type} status={self.status} blocked={self.blocking_resources}&gt;&quot;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
         <entry key="$PROJECT_DIR$/tests/data/discord/test_retry_env.py">
           <value>
             <PendingDiffInfo>

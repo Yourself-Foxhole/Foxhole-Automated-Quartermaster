@@ -1,4 +1,13 @@
+"""
+This module defines the canonical mapping for all production process interactions in the game.
+
+PRODUCTION_PROCESS_MAP is the authoritative, permanent set of constants for how all types of production
+    (not just facilities) are mapped to their respective process types and production/facility types.
+Import this mapping wherever standardized process lookups are required.
+"""
+
 from enum import Enum
+from typing import Final, Dict, Tuple, Union
 
 class ProductionType(Enum):
     FACTORY = "Factory"
@@ -62,14 +71,15 @@ class ProcessType(Enum):
     MEDICAL = "Medical"
     METALWORKS = "Metalworks"
 
-# Example mapping dictionary
-PRODUCTION_PROCESS_MAP = {
+# The canonical mapping for all production process interactions in the game.
+# Keys are string identifiers for production types; values are tuples of (FacilityType | ProductionType | ProcessType, ProcessType).
+PRODUCTION_PROCESS_MAP: Final[Dict[str, Tuple[Union[FacilityType, ProductionType, ProcessType], ProcessType]]] = {
     "Vehicle::Facility::Base": (FacilityType.VEHICLE_FACTORY_1, ProcessType.DEFAULT),
     "Vehicle::Facility::MotorPool": (FacilityType.VEHICLE_FACTORY_1, ProcessType.MOTOR_POOL),
     "Vehicle::Facility::BatteryLine": (FacilityType.VEHICLE_FACTORY_1, ProcessType.ARTILLERY_FACTORY),
     "Vehicle::Facility::FieldStation": (FacilityType.VEHICLE_FACTORY_1, ProcessType.ARTILLERY_FACTORY),
     "Vehicle::Facility::Tank": (FacilityType.VEHICLE_FACTORY_1, ProcessType.TANK_ASSEMBLY),
-    "Vehicle::Facility::WeaponsPlatform": (FacilityType.VEHICLE_FACTORY_1, ProcessType.WEAPONS_PLATFORM_ASSEMBLY),
+        "Vehicle::Facility::WeaponsPlatform": (FacilityType.VEHICLE_FACTORY_1, ProcessType.WEAPONS_PLATFORM_ASSEMBLY),
     "Vehicle::Facility::HeavyTank": (FacilityType.VEHICLE_FACTORY_2, ProcessType.HEAVY_TANK_ASSEMBLY),
     "Vehicle::Facility::Train::Base": (FacilityType.VEHICLE_FACTORY_2, ProcessType.DEFAULT),
     "Vehicle::Facility::Train::Advanced": (FacilityType.VEHICLE_FACTORY_2, ProcessType.TRAIN_ASSEMBLY),
@@ -102,6 +112,8 @@ PRODUCTION_PROCESS_MAP = {
     "Medical::Factory": (ProcessType.MEDICAL, ProcessType.DEFAULT),
     "Medical::Hospital": (ProcessType.MEDICAL, ProcessType.DEFAULT),
     "Medical::TrainHospital": (ProcessType.MEDICAL, ProcessType.DEFAULT),
+    "Medical::FieldHopsital": (ProcessType.MEDICAL, ProcessType.DEFAULT),
+    "Medical::MedicalRoom": (ProcessType.MEDICAL, ProcessType.DEFAULT),
     "Shippable::MPF": (ProcessType.UTILITY, ProcessType.DEFAULT),
     "Shippable::ConstructionYard": (ProductionType.CONSTRUCTION_YARD, ProcessType.DEFAULT),
     "Resource::Facility::BuildMaterials": (FacilityType.CONCRETE_MIXER, ProcessType.DEFAULT),
@@ -130,4 +142,3 @@ PRODUCTION_PROCESS_MAP = {
     "AdvancedStructure::Facility::RocketPlatform": (FacilityType.ROCKET_SITE, ProcessType.DEFAULT),
     "AdvancedStructure::Facility::AdvancedStructureManufactory": (FacilityType.VEHICLE_FACTORY_1, ProcessType.ROCKET_ASSEMBLY),
 }
-

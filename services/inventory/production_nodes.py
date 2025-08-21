@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Any, Protocol
 from services.FoxholeDataObjects.processes import ProductionType, FacilityType, ProcessType, PRODUCTION_PROCESS_MAP
 from enum import Enum
+from services.inventory.inventory_graph import InventoryNode, InventoryEdge
 
 class BaseType(Enum):
     RESOURCE = "Resource"
@@ -21,8 +22,25 @@ class BaseNode:
         self.delta: Dict[str, int] = {}
         self.status: str = "unknown"
         self.metadata: Dict[str, Any] = {}
-        self.edges: List[Any] = []
+        self.edges: List[Any] = []  # List of InventoryEdge objects
         self.status_table: Dict[str, Dict[str, int]] = {}
+
+    def add_edge(self, edge: 'InventoryEdge'):
+        self.edges.append(edge)
+
+    def compute_delta_from_orders(self):
+        """
+        Compute delta based on orders from downstream nodes.
+        Aggregates orders from all connected edges.
+        """
+        total_orders: Dict[str, int] = {}
+        for edge in self.edges:
+            if hasattr(edge, 'get_orders'):
+                for order in edge.get_orders():
+                    item = order.item
+                    quantity = order.quantity
+                    total_orders[item] = total_orders.get(item, 0) + quantity
+        self.delta = total_orders
 
 class ProductionProcessSupport(Protocol):
     def get_production_processes(self) -> List[str]:
@@ -42,7 +60,6 @@ class ProductionNode(BaseNode, ProductionProcessSupport):
         self.process_type = process_type
         self.process_label = process_label
         self.in_production: dict[str, dict[str, Any]] = {}  # item -> status/quantity
-        self.production_orders_table: list[dict[str, Any]] = []  # queue of future orders
         self.set_production_processes()
 
     def set_production_processes(self, processes: list[str] | None = None):
@@ -93,6 +110,25 @@ class QueueableProductionNode(ProductionNode):
         # For now, just print (replace with event dispatch in future)
         print(f"[Queue Expiry Warning] Player '{player}' queue will expire in {int(time_left // 60)} minutes.")
 
+    def add_production_order(self, item: str, quantity: int, target_node: 'InventoryNode', required_resources: Optional[Dict[str, int]] = None):
+        """
+        Create a production order and attach to the appropriate edge.
+        If resources are missing, mark as blocked and list missing resources.
+        """
+        from services.inventory.order import Order
+        missing_resources = []
+        if required_resources:
+            for res, amt in required_resources.items():
+                if self.inventory.get(res, 0) < amt:
+                    missing_resources.append(res)
+        status = "blocked" if missing_resources else "queued"
+        order = Order(item, quantity, self, target_node, status=status, order_type="production", blocking_resources=missing_resources)
+        # Attach order to edge
+        for edge in self.edges:
+            if edge.target == target_node:
+                edge.add_order(order)
+                break
+
 class RefineryNode(QueueableProductionNode):
     pass
 
@@ -116,37 +152,37 @@ class FactoryNode(QueueableProductionNode):
         super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
         self.set_production_processes(self.SUPPORTED_PROCESSES)
 
-    def add_to_queue(self, player: str, order: Dict[str, Any]):
-        # Enforce supported processes
-        process_label = order.get("process_label")
+    def add_production_order(self, item: str, quantity: int, target_node: InventoryNode, required_resources: Optional[Dict[str, int]] = None):
+        process_label = required_resources.get("process_label") if required_resources else None
         if process_label and process_label not in self.SUPPORTED_PROCESSES:
             raise ValueError(f"Process '{process_label}' not supported by FactoryNode.")
-        # Enforce crate limit
-        num_crates = order.get("num_crates", 1)
+        num_crates = required_resources.get("num_crates", 1) if required_resources else 1
         if num_crates > self.MAX_CRATES_PER_ORDER:
             raise ValueError(f"Cannot produce more than {self.MAX_CRATES_PER_ORDER} crates per order.")
-        # Enforce player queue limit
-        if player not in self.production_queue and len(self.production_queue) >= self.MAX_ACTIVE_PLAYERS:
-            raise ValueError(f"Cannot have more than {self.MAX_ACTIVE_PLAYERS} players with active queues.")
         # Add order and set expiration
-        super().add_to_queue(player, order)
-        import time
-        self.set_queue_expiration(player, time.time() + self.ORDER_EXPIRATION_SECONDS)
+        super().add_production_order(item, quantity, target_node, required_resources)
 
     def expire_orders(self):
+        # Edge-based: expire orders by status/timestamp if needed
         import time
         now = time.time()
-        lost_orders = []
-        for player, expiration in list(self.queue_expiration.items()):
-            if expiration < now:
-                # Mark all orders for this player as lost
-                lost_orders.extend(self.production_queue.get(player, []))
-                self.production_queue[player] = []
-                del self.queue_expiration[player]
-        return lost_orders
+        expired_orders = []
+        for edge in self.edges:
+            for order in edge.get_orders():
+                if hasattr(order, 'created_at') and order.status == "queued":
+                    if order.created_at and now - order.created_at > self.ORDER_EXPIRATION_SECONDS:
+                        order.update_status("expired", now)
+                        expired_orders.append(order)
+        return expired_orders
 
     def get_active_players(self) -> List[str]:
-        return [player for player, queue in self.production_queue.items() if queue]
+        # Edge-based: return unique sources of active orders
+        active_players = set()
+        for edge in self.edges:
+            for order in edge.get_orders():
+                if order.status in ["queued", "blocked"]:
+                    active_players.add(order.source.node_id)
+        return list(active_players)
 
 class MassProductionFactoryNode(QueueableProductionNode):
     SUPPORTED_PROCESSES = [
@@ -167,21 +203,12 @@ class MassProductionFactoryNode(QueueableProductionNode):
         super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
         self.set_production_processes(self.SUPPORTED_PROCESSES)
 
-    def add_to_queue(self, player: str, order: Dict[str, Any]):
-        process_label = order.get("process_label")
+    def add_production_order(self, item: str, quantity: int, target_node: InventoryNode, required_resources: Optional[Dict[str, int]] = None):
+        process_label = required_resources.get("process_label") if required_resources else None
         if process_label not in self.SUPPORTED_PROCESSES:
             raise ValueError(f"Process '{process_label}' not supported by MassProductionFactoryNode.")
-        # Shared queue for Vehicle::MPF and Ship::MPF
-        if process_label in ["Vehicle::MPF", "Ship::MPF"]:
-            shared_key = "mpf_vehicle"
-            if shared_key not in self.production_queue:
-                self.production_queue[shared_key] = []
-            self.production_queue[shared_key].append(order)
-            # Set expiration for shared queue
-            import time
-            self.set_queue_expiration(shared_key, time.time() + 3600)  # 60 min expiration
-        else:
-            super().add_to_queue(player, order)
+        # Shared queue for Vehicle::MPF and Ship::MPF is now edge-based
+        super().add_production_order(item, quantity, target_node, required_resources)
 
     def get_player_queue(self, player: str) -> List[Dict[str, Any]]:
         # For shared vehicle/ship queue, return that if requested
