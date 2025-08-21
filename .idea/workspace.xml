@@ -8,7 +8,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="69362de7-8006-4a9d-a9d9-3765bc5a03c2" name="Changes" comment="'minor: prepare for rebase, working on refactor of orders table'">
+    <list default="true" id="90721d3b-b442-4f13-b6f8-3c828145caa5" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dependencies/Stockpiler" beforeDir="false" afterPath="$PROJECT_DIR$/dependencies/Stockpiler" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dependencies/Stockpiler/Stockpiler.py" beforeDir="false" />
     </list>
@@ -62,26 +66,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python tests.Python tests for test_discord_bot_integration.test_send_message_and_add_reaction_integration.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.Python tests in bot-connection.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python.facility_tracking_demo.executor&quot;: &quot;Run&quot;,
-    &quot;Python.import_static_data.executor&quot;: &quot;Run&quot;,
-    &quot;Python.inventory_graph.executor&quot;: &quot;Run&quot;,
-    &quot;Python.production_graph.executor&quot;: &quot;Run&quot;,
-    &quot;Python.production_network_demo.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;SONARLINT_PRECOMMIT_ANALYSIS&quot;: &quot;true&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;aExpanded/All Inspections&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;settings.editor.splitter.proportion&quot;: &quot;0.19306931&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python tests.Python tests for test_discord_bot_integration.test_send_message_and_add_reaction_integration.executor": "Run",
+    "Python tests.Python tests in bot-connection.py.executor": "Run",
+    "Python.facility_tracking_demo.executor": "Run",
+    "Python.import_static_data.executor": "Run",
+    "Python.inventory_graph.executor": "Run",
+    "Python.production_graph.executor": "Run",
+    "Python.production_network_demo.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "SONARLINT_PRECOMMIT_ANALYSIS": "true",
+    "git-widget-placeholder": "feature/july-2025-rewrite",
+    "run.code.analysis.last.selected.profile": "aExpanded/All Inspections",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "settings.editor.splitter.proportion": "0.19306931"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="F:\Projects\Foxhole\LogiBot\Foxhole-Automated-Quartermaster\services\production-calculator" />
