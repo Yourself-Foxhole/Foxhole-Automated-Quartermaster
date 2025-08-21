@@ -210,12 +210,6 @@ class MassProductionFactoryNode(QueueableProductionNode):
         # Shared queue for Vehicle::MPF and Ship::MPF is now edge-based
         super().add_production_order(item, quantity, target_node, required_resources)
 
-    def get_player_queue(self, player: str) -> List[Dict[str, Any]]:
-        # For shared vehicle/ship queue, return that if requested
-        if player == "mpf_vehicle":
-            return self.production_queue.get("mpf_vehicle", [])
-        return super().get_player_queue(player)
-
     @staticmethod
     def get_crate_discount_percentage(self, num_crates: int) -> float:
         """
