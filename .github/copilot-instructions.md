@@ -116,6 +116,14 @@ Do not ever use HTML tags or any other formatting for the todo list, as it will 
 
 Always show the completed todo list to the user as the last item in your message, so that they can see that you have addressed all of the steps.
 
+In the event of new information, double check your assumptions in the todo list. Go through each of the remaining steps, and make sure it's still necessary or if it needs to be changed.
+
+If it needs to be changed, think deeply, plan your actions, cancel out the remaining steps and generate new steps. Go through each one of these in order. Repeat this process until you arrive at a solution.
+
+If it doesn't work in some cases you may need to go back and retest or redo previous work doing deeper research on google and trying different options until you make progress. Solving one error or problem may introduce another error, but you can make progress by learning and taking it step by step.
+
+Always include a final step that checks the work or output to make sure it achieves the desired result.
+
 # Communication Guidelines
 Always communicate clearly and concisely in a casual, friendly yet professional tone. 
 <examples>
@@ -226,13 +234,13 @@ git --no-pager log --oneline -5
 ## Important Notes
 
 ### Security Considerations
-- **NEVER COMMIT DISCORD BOT TOKENS** to the repository
+- **NEVER COMMIT DISCORD BOT TOKENS** to the repository.
+- If you later find out a token has been committed, don't panic, but let the user know immediately so they can invalidate the token.
 - Use environment variables or `.env` files (add to .gitignore)
 - Verify bot permissions are minimal and appropriate
 - Test with development Discord server before production
 
 ### Discord Bot Specific Warnings
 - Discord bots require proper server permissions to function
-- Bot tokens are sensitive and must be kept secure
 - Rate limiting applies to Discord API calls
 - Bot must be invited to Discord servers with correct permissions
