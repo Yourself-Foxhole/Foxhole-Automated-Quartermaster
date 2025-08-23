@@ -6,7 +6,9 @@ and water pressure behind a dam. The more blocked tasks "build up" behind a bott
 the higher the priority becomes.
 """
 import math
-from typing import Dict, List, Set, Optional, Tuple
+
+from typing import Optional, List, Dict, Tuple
+
 from .task import Task, TaskStatus
 
 
@@ -22,25 +24,35 @@ class FluidDynamicsPriorityCalculator:
     """
     
     def __init__(self, 
-                 time_pressure_factor: float = 0.1,
+                 time_pressure_factor: float = 0.035,
                  max_time_multiplier: float = 5.0,
-                 base_priority_weight: float = 1.0):
-        """
-        Initialize the priority calculator.
-        
+                 base_priority_weight: float = 1.0,
+                 additional_algorithms: Optional[List] = None):
+        """Initialize the priority calculator.
+
         Args:
-            time_pressure_factor: How much blocked time affects priority (per hour)
-            max_time_multiplier: Maximum multiplier from time pressure
-            base_priority_weight: Weight for tasks without specific priority
+            time_pressure_factor: Blocked time effect per hour (5 days to max)
+            max_time_multiplier: Max time pressure multiplier
+            base_priority_weight: Default priority weight
+            additional_algorithms: List of other priority algorithms for weighted average
         """
         self.time_pressure_factor = time_pressure_factor
         self.max_time_multiplier = max_time_multiplier
         self.base_priority_weight = base_priority_weight
         self.task_graph: Dict[str, Task] = {}
+        self.additional_algorithms = additional_algorithms or []
     
-    def add_task(self, task: Task) -> None:
-        """Add a task to the priority calculation system."""
-        self.task_graph[task.task_id] = task
+    def add_task(self, task) -> None:
+        """Add a task to the priority calculation system. Accepts Task, ProductionTask, or TransportationTask."""
+        # Support both new and legacy task types
+        if hasattr(task, 'task_id'):
+            key = getattr(task, 'task_id')
+        elif hasattr(task, 'item') and hasattr(task, 'node'):
+            # Use item+node as fallback unique key for legacy tasks
+            key = f"{getattr(task, 'item', '')}_{getattr(task, 'node', None)}"
+        else:
+            key = str(id(task))
+        self.task_graph[key] = task
     
     def remove_task(self, task_id: str) -> None:
         """Remove a task from the system."""
@@ -51,7 +63,9 @@ class FluidDynamicsPriorityCalculator:
         """Get a task by ID."""
         return self.task_graph.get(task_id)
     
-    def find_upstream_blocked_tasks(self, task_id: str, visited: Optional[Set[str]] = None) -> List[Task]:
+    def find_upstream_blocked_tasks(
+        self, task_id: str, visited: None | set[str] = None
+    ) -> list[Task]:
         """
         Find all blocked tasks upstream from the given task.
         
@@ -67,25 +81,22 @@ class FluidDynamicsPriorityCalculator:
         """
         if visited is None:
             visited = set()
-        
         if task_id in visited or task_id not in self.task_graph:
             return []
-        
         visited.add(task_id)
         task = self.task_graph[task_id]
         blocked_tasks = []
-        
-        # If this task is blocked, include it
         if task.status == TaskStatus.BLOCKED:
             blocked_tasks.append(task)
-        
-        # Recursively check upstream dependencies
         for dep_id in task.upstream_dependencies:
-            blocked_tasks.extend(self.find_upstream_blocked_tasks(dep_id, visited.copy()))
-        
+            blocked_tasks.extend(
+                self.find_upstream_blocked_tasks(dep_id, visited.copy())
+            )
         return blocked_tasks
     
-    def calculate_time_pressure_multiplier(self, blocked_duration_hours: float) -> float:
+    def calculate_time_pressure_multiplier(
+        self, blocked_duration_hours: float
+    ) -> float:
         """
         Calculate time-based pressure multiplier.
         
@@ -102,7 +113,9 @@ class FluidDynamicsPriorityCalculator:
             return 1.0
         
         # Exponential growth: 1 + factor * (e^(hours * factor) - 1)
-        time_multiplier = 1.0 + (math.exp(blocked_duration_hours * self.time_pressure_factor) - 1.0)
+        time_multiplier = 1.0 + (
+            math.exp(blocked_duration_hours * self.time_pressure_factor) - 1.0
+        )
         return min(time_multiplier, self.max_time_multiplier)
     
     def calculate_fluid_pressure(self, task_id: str) -> Tuple[float, Dict[str, any]]:
@@ -129,9 +142,18 @@ class FluidDynamicsPriorityCalculator:
         blocked_upstream = self.find_upstream_blocked_tasks(task_id)
         
         if not blocked_upstream:
-            return task.base_priority, {
+            base_priority = task.base_priority
+            # Weighted average stub: add other algorithms if present
+            if self.additional_algorithms:
+                weighted_sum = base_priority
+                total_weight = 1.0
+                for algo, weight in self.additional_algorithms:
+                    weighted_sum += algo(task_id) * weight
+                    total_weight += weight
+                base_priority = weighted_sum / total_weight
+            return base_priority, {
                 "blocked_count": 0,
-                "total_weight": task.base_priority,
+                "total_weight": base_priority,
                 "time_multiplier": 1.0,
                 "blocked_tasks": []
             }
@@ -159,6 +181,14 @@ class FluidDynamicsPriorityCalculator:
         
         # Final priority = blocked_weight * time_pressure + base_priority
         priority_score = (total_blocked_weight * time_multiplier) + task.base_priority
+        # Weighted average stub: add other algorithms if present
+        if self.additional_algorithms:
+            weighted_sum = priority_score
+            total_weight = 1.0
+            for algo, weight in self.additional_algorithms:
+                weighted_sum += algo(task_id) * weight
+                total_weight += weight
+            priority_score = weighted_sum / total_weight
         
         calculation_details = {
             "blocked_count": len(blocked_upstream),

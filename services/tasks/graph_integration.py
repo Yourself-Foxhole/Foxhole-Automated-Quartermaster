@@ -1,11 +1,10 @@
 """
 Integration layer between the fluid dynamics priority system and existing graph structures.
 
-This module provides utilities to convert production/inventory graphs into task graphs
+This module provides utilities to convert production/inventory graphs into task graphs,
 for priority calculation, and to apply priority-based scheduling.
 """
-import networkx as nx
-from typing import Dict, List, Optional, Set, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
 
 from .task import Task, TaskStatus
@@ -15,13 +14,12 @@ from .fluid_priority import FluidDynamicsPriorityCalculator
 class GraphTaskIntegrator:
     """
     Integrates the fluid dynamics priority system with existing NetworkX-based graphs.
-    
+
     This class can convert production chains and inventory networks into task graphs,
     apply priority calculations, and provide scheduling recommendations.
     """
     
     def __init__(self, priority_calculator: Optional[FluidDynamicsPriorityCalculator] = None):
-        """
         Initialize the integrator.
         
         Args:
@@ -31,18 +29,22 @@ class GraphTaskIntegrator:
         self.node_to_task_map: Dict[str, str] = {}  # Maps graph node IDs to task IDs
         self.task_to_node_map: Dict[str, str] = {}  # Maps task IDs to graph node IDs
     
-    def create_tasks_from_production_graph(self, production_graph, base_priority_map: Optional[Dict[str, float]] = None) -> List[Task]:
+    def create_tasks_from_production_graph(
+        self,
+        production_graph,
+        base_priority_map: Optional[Dict[str, float]] = None
+    ) -> List[Task]:
         """
         Convert a production graph into tasks for priority calculation.
-        
+        """
+        Convert a production graph into tasks for priority calculation.
+
         Args:
-            production_graph: NetworkX DiGraph representing production dependencies
-            base_priority_map: Optional mapping of node names to base priorities
-            
+            production_graph: NetworkX DiGraph representing production dependencies.
+            base_priority_map: Optional mapping of node names to base priorities.
         Returns:
             List of created Task objects
         """
-        if base_priority_map is None:
             base_priority_map = {}
         
         created_tasks = []
@@ -238,20 +240,14 @@ class GraphTaskIntegrator:
         
         report = []
         report.append("FLUID DYNAMICS PRIORITY REPORT")
-        report.append("=" * 50)
-        report.append(f"Generated at: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
-        report.append(f"Total tasks analyzed: {len(self.priority_calc.task_graph)}")
-        
-        # Count blocked tasks
-        blocked_count = sum(1 for task in self.priority_calc.task_graph.values() 
-                          if task.status == TaskStatus.BLOCKED)
+        # Integrates the fluid dynamics priority system with existing NetworkX-based graphs.
+        # This class can convert production chains and inventory networks into task graphs,
+        # apply priority calculations, and provide scheduling recommendations.
+        blocked_count = sum(
+            1 for task in self.priority_calc.task_graph.values()
+            if task.status == TaskStatus.BLOCKED
+        )
         report.append(f"Currently blocked tasks: {blocked_count}")
-        report.append("")
-        
-        report.append("TOP PRIORITY RECOMMENDATIONS:")
-        report.append("-" * 50)
-        report.append(f"{'Rank':<5} {'Node ID':<15} {'Priority':<10} {'Blocked Tasks':<15} {'Status'}")
-        report.append("-" * 70)
         
         for i, (node_id, task_name, priority, details) in enumerate(recommendations):
             task_id = self.node_to_task_map.get(node_id, "")
@@ -261,15 +257,12 @@ class GraphTaskIntegrator:
             
             report.append(f"{i+1:<5} {node_id:<15} {priority:<10.2f} {blocked_count:<15} {status}")
         
-        report.append("")
-        report.append("CRITICAL BOTTLENECKS:")
-        report.append("-" * 30)
-        
-        # Find tasks with most downstream dependencies
-        critical_bottlenecks = []
-        for task_id, task in self.priority_calc.task_graph.items():
-            if task.status == TaskStatus.BLOCKED and len(task.downstream_dependents) > 0:
-                node_id = self.task_to_node_map.get(task_id, task_id)
+            # Convert a production graph into tasks for priority calculation.
+            # Args:
+            #     production_graph: NetworkX DiGraph representing production dependencies
+            #     base_priority_map: Optional mapping of node names to base priorities
+            # Returns:
+            #     List of created Task objects
                 critical_bottlenecks.append((node_id, task.name, len(task.downstream_dependents), 
                                            task.get_blocked_duration_hours()))
         
@@ -285,34 +278,22 @@ class GraphTaskIntegrator:
         
         return "\n".join(report)
     
-    def _get_default_priority_by_type(self, task_type: str) -> float:
-        """Get default priority based on task type."""
-        priority_map = {
-            "resource_production": 1.0,
-            "refined_production": 2.0,
-            "material_production": 3.0,
-            "product_production": 4.0,
-            "transport": 3.0,
-            "supply": 2.5
+    def _get_default_priority_by_type(self, item_name: str) -> float:
+        """Get default priority based on item name.
+
+        This is a placeholder for future item-specific tuning.
+        BMATs and shirts are highest priority, followed by other essentials.
+    """
+    item_priority_table = {
+            "Basic Materials": 10.0,  # BMATs
+            "Shirts": 9.5,
+            "Refined Materials": 8.0,  # RMATs
+            "Soldier's Supplies": 7.5,
+            "Bandages": 7.0,
+            "7.62 mm Ammo": 6.5,
+            "Blakerow Rifle": 6.0,
+            # Add more items as needed
         }
-        return priority_map.get(task_type, 1.0)
+        # Default fallback priority for unknown items
+        return item_priority_table.get(item_name, 5.0)
     
-    def _get_priority_from_inventory_status(self, inventory_node) -> float:
-        """Calculate priority based on inventory node status and delta."""
-        base_priority = 2.0
-        
-        # Increase priority based on status
-        status_multipliers = {
-            "critical": 3.0,
-            "low": 2.0,
-            "ok": 1.0,
-            "blocked": 2.5
-        }
-        
-        multiplier = status_multipliers.get(inventory_node.status, 1.0)
-        
-        # Increase priority if there's high demand (negative delta)
-        total_demand = sum(abs(qty) for qty in inventory_node.delta.values() if qty < 0)
-        demand_bonus = min(total_demand * 0.1, 2.0)  # Cap at +2.0
-        
-        return base_priority * multiplier + demand_bonus

@@ -26,7 +26,8 @@ class Priority:
         return score
 
     def __repr__(self):
-        return f"<Priority score={self.score:.2f} signals={self.signals}>"
+        # Use print parameters and round for formatting
+        return "<Priority score=" + str(round(self.score, 2)) + " signals=" + str(self.signals) + ">"
 
 class Task:
     def __init__(self, task_type: str, node: InventoryNode, item: str, quantity: int, details: Dict[str, Any] = None, priority: 'Priority' = None):
@@ -38,7 +39,12 @@ class Task:
         self.priority = priority
 
     def __repr__(self):
-        return f"<Task type={self.task_type} node={self.node.location_name} item={self.item} qty={self.quantity} priority={self.priority.score if self.priority else 'N/A'}>"
+        # Use print parameters and round for formatting
+        priority_score = self.priority.score if self.priority else 'N/A'
+        if isinstance(priority_score, float):
+            priority_score = round(priority_score, 2)
+        print("<Task type=", self.task_type, "node=", self.node.location_name, "item=", self.item, "qty=", self.quantity, "priority=", priority_score, ">")
+        return ""
 
 class TransportationTask(Task):
     def __init__(self, source: InventoryNode, destination: InventoryNode, item: str, quantity: int, signals: Dict[str, float]):
