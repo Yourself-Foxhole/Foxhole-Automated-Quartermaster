@@ -1,6 +1,6 @@
 """Task representation for the priority system."""
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -27,7 +27,7 @@ class Task:
     task_type: str  # e.g., "production", "transport", "supply"
     status: TaskStatus = TaskStatus.PENDING
     base_priority: float = 1.0  # Base priority weight from priority table
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     blocked_since: datetime | None = None
     upstream_dependencies: set[str] = field(default_factory=set)
     downstream_dependents: set[str] = field(default_factory=set)
@@ -37,7 +37,7 @@ class Task:
         """Mark this task as blocked and record the time."""
         if self.status != TaskStatus.BLOCKED:
             self.status = TaskStatus.BLOCKED
-            self.blocked_since = datetime.now(UTC)
+            self.blocked_since = datetime.now(timezone.utc)
 
     def mark_unblocked(self) -> None:
         """Mark this task as no longer blocked."""
@@ -49,7 +49,7 @@ class Task:
         """Get how long this task has been blocked in hours."""
         if self.blocked_since is None:
             return 0.0
-        return (datetime.now(UTC) - self.blocked_since).total_seconds() / 3600.0
+        return (datetime.now(timezone.utc) - self.blocked_since).total_seconds() / 3600.0
 
     def __repr__(self) -> str:
         """Return string representation of the task."""
