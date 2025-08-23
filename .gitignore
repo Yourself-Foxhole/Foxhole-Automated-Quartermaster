@@ -181,5 +181,12 @@ cython_debug/
 *.xlsx
 *.xls
 
-dependencies/*
-dependencies/Stockpiler/*
+
+
+dependencies/Stockpiler
+
+dependencies/
+
+.idea/copilotDiffState.xml
+
+.idea/workspace.xml
