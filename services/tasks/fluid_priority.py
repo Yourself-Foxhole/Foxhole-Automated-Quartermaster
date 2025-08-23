@@ -1,8 +1,9 @@
-"""Fluid Dynamics Priority Algorithm
+"""Fluid Dynamics-Inspired Priority Algorithm.
 
-This module implements a priority calculation system based on the analogy of fluid dynamics
+This module implements a priority calculation system inspired by the analogy of fluid dynamics
 and water pressure behind a dam. The more blocked tasks "build up" behind a bottleneck,
-the higher the priority becomes.
+the higher the priority becomes. While inspired by fluid dynamics principles, this is 
+not an actual fluid dynamics simulation but rather a priority calculation algorithm.
 """
 import math
 
@@ -10,13 +11,16 @@ from .task import Task, TaskStatus
 
 
 class FluidDynamicsPriorityCalculator:
-    """Calculates task priority based on fluid dynamics principles.
+    """Calculates task priority using principles inspired by fluid dynamics.
     
     The algorithm works like water building pressure behind a dam:
     1. Count blocked upstream tasks (water volume)
     2. Sum their relative weights (water density)
     3. Apply time-based multipliers (pressure buildup over time)
     4. Calculate final priority score (water pressure)
+    
+    Note: This is a priority calculation algorithm inspired by fluid dynamics
+    principles, not an actual fluid dynamics simulation.
     """
 
     def __init__(self,

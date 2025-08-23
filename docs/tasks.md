@@ -42,7 +42,38 @@ actionable units that improve clarity and usability.
 4. Users select and execute tasks in-game.
 5. Task completion updates inventory and order state, triggering regeneration of tasks.
 
-## Types of Tasks
+## Priority Calculation
+
+Task priority is calculated using a weighted combination of multiple algorithms and signals:
+
+### Priority Signals
+- **Delta**: Unmet demand or supply shortage (weight: 1.0)
+- **Inventory**: Current inventory levels - surplus reduces priority (weight: -0.5)
+- **Status**: Node criticality level (critical=2.0, low=1.0, ok=0.0) (weight: 2.0)
+- **Distance**: Distance to fulfill (reduces priority) (weight: -0.2)
+- **Fluid Dynamics**: Upstream blockage pressure (weight: 1.5)
+
+### Fluid Dynamics-Inspired Priority Algorithm
+
+One key component of the priority system is inspired by fluid dynamics principles, modeling blocked upstream dependencies as water pressure building behind a dam.
+
+**How it works:**
+1. Count blocked upstream tasks (water volume behind dam)
+2. Sum their relative weights (water density)
+3. Apply time-based multipliers (pressure buildup over 5 days)
+4. Calculate fluid pressure contribution to final priority
+
+**Key features:**
+- Time pressure builds exponentially (1.0x → 5.0x over 5 days)
+- Upstream blockages propagate pressure to dependent tasks
+- Multiple blockages compound effects like dams in series
+- Real-time blocking/unblocking updates priority calculations
+
+**Note:** This is a priority calculation algorithm inspired by fluid dynamics principles, not an actual fluid dynamics simulation. It serves as one weighted component among multiple priority calculation algorithms.
+
+### Extensibility
+
+The priority system is designed to support additional algorithms and signals as requirements evolve. New priority factors can be added to the weighted calculation system without disrupting existing functionality.
 
 1. Transportation: Transport between nodes, if available
 2. Production: Manufacturing or making of items
