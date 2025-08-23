@@ -1,11 +1,11 @@
-"""
-Demonstration of the Fluid Dynamics Priority Algorithm
+
+"""Demonstration of the Fluid Dynamics Priority Algorithm.
 
 This script shows how the priority system works with a realistic logistics scenario.
 """
-import sys
-import os
-sys.path.append('/home/runner/work/Foxhole-Automated-Quartermaster/Foxhole-Automated-Quartermaster')
+
+from datetime import datetime, timedelta
+from services.tasks import Task, FluidDynamicsPriorityCalculator
 
 from datetime import datetime, timedelta
 from services.tasks import Task, TaskStatus, FluidDynamicsPriorityCalculator
@@ -50,7 +50,7 @@ def create_logistics_scenario():
     # Advanced production (depends on components)
     rifle_production = Task(
         task_id="rifle_prod",
-        name="Rifle Manufacturing",
+        name="Blakerow 871",
         task_type="production",
         base_priority=4.0
     )
@@ -58,7 +58,7 @@ def create_logistics_scenario():
     
     ammo_production = Task(
         task_id="ammo_prod",
-        name="Ammunition Manufacturing", 
+        name="120 mm Shell",
         task_type="production",
         base_priority=3.5
     )
@@ -67,7 +67,7 @@ def create_logistics_scenario():
     # Transport tasks (depend on production)
     rifle_transport = Task(
         task_id="rifle_transport",
-        name="Rifle Transport to Front",
+        name="Blakerow 871 Transport to Front",
         task_type="transport",
         base_priority=5.0
     )
@@ -75,7 +75,7 @@ def create_logistics_scenario():
     
     ammo_transport = Task(
         task_id="ammo_transport", 
-        name="Ammo Transport to Front",
+        name="7.62mm Ammo Transport to Front",
         task_type="transport",
         base_priority=6.0  # High priority - troops need ammo
     )

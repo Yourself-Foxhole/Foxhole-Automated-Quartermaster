@@ -22,21 +22,21 @@ def create_sample_production_graph():
             self.name = name
             self.category = category
     
-    iron_node = MockProductionNode("Iron Extraction", "resource")
-    steel_node = MockProductionNode("Steel Production", "refined")
-    rifle_node = MockProductionNode("Rifle Manufacturing", "product")
-    ammo_node = MockProductionNode("Ammunition Production", "product")
-    
-    graph.add_node("iron", node=iron_node)
-    graph.add_node("steel", node=steel_node)
-    graph.add_node("rifles", node=rifle_node)
-    graph.add_node("ammo", node=ammo_node)
-    
+    # Salvage extraction
+    salvage_node = MockProductionNode("Salvage Extraction", "resource")
+    # Basic Materials production (2 salvage = 1 bmat)
+    bmats_node = MockProductionNode("Basic Materials Production", "bmats")
+    # Bandages production (80 bmats = 1 crate of 50 bandages)
+    bandages_node = MockProductionNode("Bandages Production", "medical")
+
+    graph.add_node("salvage", node=salvage_node)
+    graph.add_node("bmats", node=bmats_node)
+    graph.add_node("bandages", node=bandages_node)
+
     # Add dependencies (edges represent "provides input to")
-    graph.add_edge("iron", "steel")    # Iron needed for steel
-    graph.add_edge("steel", "rifles")  # Steel needed for rifles
-    graph.add_edge("steel", "ammo")    # Steel needed for ammo too
-    
+    graph.add_edge("salvage", "bmats")    # Salvage needed for bmats
+    graph.add_edge("bmats", "bandages")   # bmats needed for bandages
+
     return graph
 
 
@@ -45,29 +45,32 @@ def create_sample_inventory_graph():
     graph = InventoryGraph()
     
     # Create nodes representing different locations
-    mine = InventoryNode("mine_1", "Iron Mine", unit_size="item")
-    mine.inventory = {"iron_ore": 1000}
-    mine.delta = {"iron_ore": -100}  # High demand
-    mine.status = "ok"
-    
-    factory = InventoryNode("factory_1", "Steel Factory")
-    factory.inventory = {"steel": 50}
-    factory.delta = {"steel": -200}  # Very high demand
-    factory.status = "critical"  # Low on supplies
-    
-    depot = InventoryNode("depot_1", "Frontline Depot")
-    depot.inventory = {"rifles": 10, "ammo": 25}
-    depot.delta = {"rifles": -50, "ammo": -100}  # High frontline demand
-    depot.status = "low"
-    
-    graph.add_node(mine)
-    graph.add_node(factory)
-    graph.add_node(depot)
-    
+    # Salvage extraction site
+    salvage_site = InventoryNode("salvage_1", "Salvage Yard", unit_size="item")
+    salvage_site.inventory = {"salvage": 2000}
+    salvage_site.delta = {"salvage": -300}  # High demand
+    salvage_site.status = "ok"
+
+    # Refinery (world structure) producing Basic Materials (2 salvage = 1 bmat)
+    refinery = InventoryNode("refinery_1", "Refinery", unit_size="structure")
+    refinery.inventory = {"bmats": 500}
+    refinery.delta = {"bmats": -100}  # High demand
+    refinery.status = "active"
+
+    # Medical facility producing bandages (80 bmats = 1 crate of 50 bandages)
+    medical_facility = InventoryNode("med_fac_1", "Medical Facility", unit_size="facility")
+    medical_facility.inventory = {"bandages": 100}
+    medical_facility.delta = {"bandages": -40}  # High demand
+    medical_facility.status = "low"
+
+    graph.add_node(salvage_site)
+    graph.add_node(refinery)
+    graph.add_node(medical_facility)
+
     # Add supply chain edges
-    graph.add_edge("mine_1", "factory_1", allowed_items=["iron_ore"])
-    graph.add_edge("factory_1", "depot_1", allowed_items=["steel", "rifles", "ammo"])
-    
+    graph.add_edge("salvage_1", "refinery_1", allowed_items=["salvage"])
+    graph.add_edge("refinery_1", "med_fac_1", allowed_items=["bmats"])
+
     return graph
 
 
@@ -82,13 +85,12 @@ def demonstrate_production_graph_integration():
     
     # Set up integrator with custom priorities
     integrator = GraphTaskIntegrator()
-    
-    # Define priority weights for different production items
+    # Define Foxhole priority weights
     priority_map = {
-        "iron": 1.0,      # Basic resource
-        "steel": 3.0,     # Important refined material
-        "rifles": 5.0,    # High priority weapon
-        "ammo": 6.0       # Critical ammunition
+        "bmats": 10.0,           # Basic Materials - most important
+        "soldiers_supplies": 9.0, # Soldier's Supplies - critical for spawning
+        "rifles": 5.0,           # Rifles - important but can be scavenged
+        "ammo": 4.0,             # Ammo - important but can be scavenged
     }
     
     print("Creating tasks from production graph...")
@@ -99,11 +101,11 @@ def demonstrate_production_graph_integration():
         print(f"  - {task.name} (Priority: {task.base_priority})")
     
     print("\nSimulating production blockages...")
-    # Simulate iron extraction being blocked (resource shortage)
-    integrator.mark_production_blocked("iron", "Resource depletion")
-    
-    # Simulate steel production also being blocked (facility damage)
-    integrator.mark_production_blocked("steel", "Facility damaged by artillery")
+    # Simulate Basic Materials being blocked (resource shortage)
+    integrator.mark_production_blocked("bmats", "Resource shortage")
+
+    # Simulate Soldier's Supplies being blocked (facility damage)
+    integrator.mark_production_blocked("soldiers_supplies", "Facility damaged")
     
     print("\nGenerating priority analysis...")
     recommendations = integrator.get_priority_recommendations(10)
@@ -113,7 +115,7 @@ def demonstrate_production_graph_integration():
     
     for i, (node_id, task_name, priority, details) in enumerate(recommendations):
         blocked_count = details.get("blocked_count", 0)
-        print(f"{i+1:<5} {node_id:<10} {task_name:<25} {priority:<10.2f} {blocked_count} blocked upstream")
+        print("{:<5} {:<10} {:<25} {:<10.2f} {} blocked upstream".format(i+1, node_id, task_name, priority, blocked_count))
     
     print("\n" + integrator.generate_priority_report())
 
@@ -159,23 +161,29 @@ def demonstrate_combined_scenario():
     
     # Set up production graph
     prod_graph = create_sample_production_graph()
-    priority_map = {"iron": 1.0, "steel": 3.0, "rifles": 5.0, "ammo": 6.0}
+    priority_map = {
+        "bmats": 10.0,           # Basic Materials - most important
+        "soldiers_supplies": 9.0, # Soldier's Supplies - critical for spawning
+        "rifles": 5.0,           # Rifles - important but can be scavenged
+        "ammo": 4.0,             # Ammo - important but can be scavenged
+        "bandages": 8.0,         # Bandages - important for healing
+    }
     prod_tasks = integrator.create_tasks_from_production_graph(prod_graph, priority_map)
-    
+
     # Set up inventory graph
     inv_graph = create_sample_inventory_graph()
     inv_tasks = integrator.create_tasks_from_inventory_graph(inv_graph)
-    
+
     print(f"Integrated system with {len(prod_tasks)} production + {len(inv_tasks)} supply tasks")
-    
+
     # Simulate multiple crises
     print("\nSimulating multiple simultaneous crises:")
-    print("1. Iron mine flooded (production blocked)")
-    print("2. Steel factory under artillery fire (production blocked)")
-    print("3. Factory already critically low on supplies")
-    
-    integrator.mark_production_blocked("iron", "Mine flooded")
-    integrator.mark_production_blocked("steel", "Under artillery fire")
+    print("1. Salvage yard contested (production blocked)")
+    print("2. Basic Materials facility contested (production blocked)")
+    print("3. Medical facility critically low on bandages")
+
+    integrator.mark_production_blocked("salvage", "Contested")
+    integrator.mark_production_blocked("bmats", "Contested")
     
     print("\nFluid dynamics priority analysis results:")
     print("(Higher priority = more urgent due to blocking pressure)")

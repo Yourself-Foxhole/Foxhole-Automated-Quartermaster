@@ -13,6 +13,9 @@ from .task import Task, TaskStatus
 
 
 class FluidDynamicsPriorityCalculator:
+    # NOTE: base_priority for each task should be set using the signal-weight system from task_layer.py
+    # (signals: delta, inventory, status, distance; weights: delta=1.0, inventory=-0.5, status=2.0, distance=-0.2)
+    # This ensures consistency and avoids conflicting priority logic between modules.
     """
     Calculates task priority based on fluid dynamics principles.
     
@@ -83,11 +86,16 @@ class FluidDynamicsPriorityCalculator:
             visited = set()
         if task_id in visited or task_id not in self.task_graph:
             return []
+        
         visited.add(task_id)
         task = self.task_graph[task_id]
         blocked_tasks = []
+        
+        # If this task is blocked, include it
         if task.status == TaskStatus.BLOCKED:
             blocked_tasks.append(task)
+        
+        # Recursively check upstream dependencies
         for dep_id in task.upstream_dependencies:
             blocked_tasks.extend(
                 self.find_upstream_blocked_tasks(dep_id, visited.copy())
