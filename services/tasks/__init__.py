@@ -1,8 +1,7 @@
+"""Task management and priority calculation system.
 """
-Task management and priority calculation system.
-"""
-from .task import Task, TaskStatus
 from .fluid_priority import FluidDynamicsPriorityCalculator
 from .graph_integration import GraphTaskIntegrator
+from .task import Task, TaskStatus
 
-__all__ = ['Task', 'TaskStatus', 'FluidDynamicsPriorityCalculator', 'GraphTaskIntegrator']
+__all__ = ["FluidDynamicsPriorityCalculator", "GraphTaskIntegrator", "Task", "TaskStatus"]

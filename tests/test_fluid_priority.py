@@ -2,7 +2,7 @@
 Tests for the fluid dynamics priority algorithm.
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from services.tasks import Task, TaskStatus, FluidDynamicsPriorityCalculator
 
 
@@ -35,9 +35,9 @@ class TestTask:
         assert task.get_blocked_duration_hours() == 0.0
         
         # Block the task
-        before_block = datetime.utcnow()
+        before_block = datetime.now(timezone.utc)
         task.mark_blocked()
-        after_block = datetime.utcnow()
+        after_block = datetime.now(timezone.utc)
         
         assert task.status == TaskStatus.BLOCKED
         assert task.blocked_since is not None
@@ -69,7 +69,7 @@ class TestFluidDynamicsPriorityCalculator:
         """Test calculator initialization with default values."""
         calc = FluidDynamicsPriorityCalculator()
         
-        assert calc.time_pressure_factor == 0.1
+        assert calc.time_pressure_factor == 0.007
         assert calc.max_time_multiplier == 5.0
         assert calc.base_priority_weight == 1.0
         assert len(calc.task_graph) == 0
@@ -309,7 +309,7 @@ class TestFluidDynamicsPriorityCalculator:
         blocked_task = Task("blocked_1", "Blocked Task", "production", base_priority=2.0)
         blocked_task.mark_blocked()
         # Simulate task blocked for 5 hours
-        blocked_task.blocked_since = datetime.utcnow() - timedelta(hours=5)
+        blocked_task.blocked_since = datetime.now(timezone.utc) - timedelta(hours=5)
         
         test_task = Task("test_1", "Test Task", "production", base_priority=1.0)
         test_task.upstream_dependencies.add("blocked_1")
