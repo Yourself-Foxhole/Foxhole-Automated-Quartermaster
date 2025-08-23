@@ -1,4 +1,7 @@
-"""Task representation for the priority system."""
+"""
+Task representation for the priority system.
+"""
+from typing import Dict, List, Optional, Set, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -11,6 +14,7 @@ class TaskStatus(Enum):
     BLOCKED = "blocked"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
+    CANCELLED = "cancelled"
     FAILED = "failed"
     CANCELLED = "cancelled"
     QUEUED = "queued"
@@ -21,18 +25,41 @@ class Task:
     """Represents a task in the logistics system.
     Tasks can be production, transport, or supply tasks that may be blocked by upstream dependencies.
     """
-
+    Represents a task in the logistics system.
+    
+    Tasks can be production, transport, or supply tasks that may be blocked
+    by upstream dependencies. Tasks can now also be driven by associated orders.
+    """
     task_id: str
     name: str
     task_type: str  # e.g., "production", "transport", "supply"
     status: TaskStatus = TaskStatus.PENDING
     base_priority: float = 1.0  # Base priority weight from priority table
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    blocked_since: datetime | None = None
-    upstream_dependencies: set[str] = field(default_factory=set)
-    downstream_dependents: set[str] = field(default_factory=set)
-    metadata: dict[str, any] = field(default_factory=dict)
-
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    blocked_since: Optional[datetime] = None
+    upstream_dependencies: Set[str] = field(default_factory=set)
+    downstream_dependents: Set[str] = field(default_factory=set)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    # Order-related fields
+    associated_orders: Set[str] = field(default_factory=set)  # Set of order IDs
+    
+    def add_order(self, order_id: str) -> None:
+        """Associate an order with this task."""
+        self.associated_orders.add(order_id)
+    
+    def remove_order(self, order_id: str) -> None:
+        """Remove an order association from this task."""
+        self.associated_orders.discard(order_id)
+    
+    def has_orders(self) -> bool:
+        """Check if this task has any associated orders."""
+        return len(self.associated_orders) > 0
+    
+    def get_order_count(self) -> int:
+        """Get the number of orders associated with this task."""
+        return len(self.associated_orders)
+    
     def mark_blocked(self) -> None:
         """Mark this task as blocked and record the time."""
         if self.status != TaskStatus.BLOCKED:

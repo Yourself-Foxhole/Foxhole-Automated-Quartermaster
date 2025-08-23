@@ -135,9 +135,11 @@ class FluidDynamicsPriorityCalculator:
         1. Number of blocked upstream tasks (volume)
         2. Sum of their priority weights (density)
         3. Time-based pressure buildup (pressure over time)
+        4. Order urgency (if order_manager provided)
         
         Args:
             task_id: The task to calculate priority for
+            order_manager: Optional OrderManager to include order urgency
             
         Returns:
             Tuple of (priority_score, calculation_details)
@@ -206,6 +208,7 @@ class FluidDynamicsPriorityCalculator:
             "time_multiplier": time_multiplier,
             "max_blocked_hours": max_blocked_duration,
             "base_priority": task.base_priority,
+            "order_urgency_bonus": order_urgency_bonus,
             "blocked_tasks": task_details,
             "formula": "({} * {}) + {}".format(round(total_blocked_weight, 2), round(time_multiplier, 2), round(task.base_priority, 2)),
         }
@@ -217,6 +220,7 @@ class FluidDynamicsPriorityCalculator:
         
         Args:
             task_ids: Optional list of specific task IDs to rank
+            order_manager: Optional OrderManager to include order urgency
             
         Returns:
             List of (task_id, priority_score, details) sorted by priority (highest first)
@@ -227,7 +231,7 @@ class FluidDynamicsPriorityCalculator:
 
         rankings = []
         for task_id in task_ids:
-            priority, details = self.calculate_fluid_pressure(task_id)
+            priority, details = self.calculate_fluid_pressure(task_id, order_manager)
             rankings.append((task_id, priority, details))
 
         # Sort by priority score (highest first)
