@@ -1,7 +1,5 @@
 from typing import Dict, List, Optional, Any
-from services.inventory.production_nodes import (
-    BaseType, BaseNode
-)
+from services.inventory.base_types import BaseType, BaseNode
 from services.FoxholeDataObjects.processes import ProductionType, FacilityType, ProcessType, PRODUCTION_PROCESS_MAP
 from services.inventory.order import Order
 
@@ -118,7 +116,6 @@ class InventoryGraph:
         edge = next((e for e in self.edges if e.source == source and e.target == target), None)
         if not edge:
             raise ValueError(f"No edge found between {source_id} and {target_id}")
-        from services.inventory.order import Order
         order = Order(item, quantity, source, target, status, created_at)
         edge.add_order(order)
         return order

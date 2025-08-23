@@ -1,15 +1,7 @@
 from typing import Dict, List, Optional, Any, Protocol
 from services.FoxholeDataObjects.processes import ProductionType, FacilityType, ProcessType, PRODUCTION_PROCESS_MAP
 from enum import Enum
-from services.inventory.inventory_graph import InventoryNode, InventoryEdge
-
-class BaseType(Enum):
-    RESOURCE = "Resource"
-    REFINERY = "CrudeOil"
-    PRODUCTION = "Production"
-    CRATE_NODE = "CrateNode"
-    ITEM_NODE = "ItemNode"
-    FACILITY = "Facility"
+from services.inventory.base_types import BaseType, BaseNode
 
 class BaseNode:
     def __init__(self, node_id: str, location_name: str, unit_size: str = "crate"
@@ -152,7 +144,8 @@ class FactoryNode(QueueableProductionNode):
         super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
         self.set_production_processes(self.SUPPORTED_PROCESSES)
 
-    def add_production_order(self, item: str, quantity: int, target_node: InventoryNode, required_resources: Optional[Dict[str, int]] = None):
+    def add_production_order(self, item: str, quantity: int, target_node: 'InventoryNode'
+                             , required_resources: Optional[Dict[str, int]] = None):
         process_label = required_resources.get("process_label") if required_resources else None
         if process_label and process_label not in self.SUPPORTED_PROCESSES:
             raise ValueError(f"Process '{process_label}' not supported by FactoryNode.")
@@ -203,7 +196,7 @@ class MassProductionFactoryNode(QueueableProductionNode):
         super().__init__(node_id, location_name, unit_size, base_type, production_type, facility_type, process_type, process_label)
         self.set_production_processes(self.SUPPORTED_PROCESSES)
 
-    def add_production_order(self, item: str, quantity: int, target_node: InventoryNode, required_resources: Optional[Dict[str, int]] = None):
+    def add_production_order(self, item: str, quantity: int, target_node: 'InventoryNode', required_resources: Optional[Dict[str, int]] = None):
         process_label = required_resources.get("process_label") if required_resources else None
         if process_label not in self.SUPPORTED_PROCESSES:
             raise ValueError(f"Process '{process_label}' not supported by MassProductionFactoryNode.")

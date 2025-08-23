@@ -1,8 +1,7 @@
 from typing import Optional
-from services.inventory.inventory_graph import InventoryNode
 
 class Order:
-    def __init__(self, item: str, quantity: int, source: InventoryNode, target: InventoryNode, status: str = "pending", created_at: Optional[float] = None, order_type: str = "production", blocking_resources: Optional[list] = None):
+    def __init__(self, item: str, quantity: int, source: 'InventoryNode', target: 'InventoryNode', status: str = "pending", created_at: Optional[float] = None, order_type: str = "production", blocking_resources: Optional[list] = None):
         self.item = item
         self.quantity = quantity
         self.source = source
@@ -20,3 +19,5 @@ class Order:
 
     def __repr__(self):
         return f"<Order {self.item} x{self.quantity} {self.source.node_id}->{self.target.node_id} type={self.type} status={self.status} blocked={self.blocking_resources}>"
+
+
