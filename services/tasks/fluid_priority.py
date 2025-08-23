@@ -46,7 +46,7 @@ class FluidDynamicsPriorityCalculator:
             key = task.task_id
         elif hasattr(task, "item") and hasattr(task, "node"):
             # Use item+node as fallback unique key for legacy tasks
-            key = f"{getattr(task, 'item', '')}_{getattr(task, 'node', None)}"
+            key = "{}_{}".format(getattr(task, "item", ""), getattr(task, "node", None))
         else:
             key = str(id(task))
         self.task_graph[key] = task
@@ -194,7 +194,7 @@ class FluidDynamicsPriorityCalculator:
             "max_blocked_hours": max_blocked_duration,
             "base_priority": task.base_priority,
             "blocked_tasks": task_details,
-            "formula": f"({total_blocked_weight:.2f} * {time_multiplier:.2f}) + {task.base_priority:.2f}",
+            "formula": "({} * {}) + {}".format(round(total_blocked_weight, 2), round(time_multiplier, 2), round(task.base_priority, 2)),
         }
 
         return priority_score, calculation_details
@@ -227,23 +227,23 @@ class FluidDynamicsPriorityCalculator:
         task = self.task_graph.get(task_id)
 
         if not task:
-            print(f"Task {task_id} not found")
+            print("Task {} not found".format(task_id))
             return
 
         print("\n=== Fluid Dynamics Priority Analysis ===")
-        print(f"Task: {task.name} ({task_id})")
-        print(f"Status: {task.status.value}")
-        print(f"Final Priority Score: {priority:.2f}")
+        print("Task: {} ({})".format(task.name, task_id))
+        print("Status: {}".format(task.status.value))
+        print("Final Priority Score: {}".format(round(priority, 2)))
         print("\nCalculation Details:")
-        print(f"  Base Priority: {details.get('base_priority', 0):.2f}")
-        print(f"  Blocked Tasks Count: {details.get('blocked_count', 0)}")
-        print(f"  Total Blocked Weight: {details.get('total_weight', 0):.2f}")
-        print(f"  Time Multiplier: {details.get('time_multiplier', 1):.2f}")
-        print(f"  Max Blocked Duration: {details.get('max_blocked_hours', 0):.1f} hours")
-        print(f"  Formula: {details.get('formula', 'N/A')}")
+        print("  Base Priority: {}".format(round(details.get("base_priority", 0), 2)))
+        print("  Blocked Tasks Count: {}".format(details.get("blocked_count", 0)))
+        print("  Total Blocked Weight: {}".format(round(details.get("total_weight", 0), 2)))
+        print("  Time Multiplier: {}".format(round(details.get("time_multiplier", 1), 2)))
+        print("  Max Blocked Duration: {} hours".format(round(details.get("max_blocked_hours", 0), 1)))
+        print("  Formula: {}".format(details.get("formula", "N/A")))
 
         if details.get("blocked_tasks"):
             print("\nBlocked Upstream Tasks:")
             for bt in details["blocked_tasks"]:
-                print(f"  - {bt['name']} ({bt['task_id']}): weight={bt['weight']:.2f}, blocked={bt['blocked_hours']:.1f}h")
+                print("  - {} ({}): weight={}, blocked={}h".format(bt["name"], bt["task_id"], round(bt["weight"], 2), round(bt["blocked_hours"], 1)))
         print("=" * 40)

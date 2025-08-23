@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.append('/home/runner/work/Foxhole-Automated-Quartermaster/Foxhole-Automated-Quartermaster')
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from services.tasks import Task, TaskStatus, FluidDynamicsPriorityCalculator
 
 
@@ -49,16 +49,16 @@ def create_logistics_scenario():
     
     # Advanced production (depends on components)
     rifle_production = Task(
-        task_id="rifle_prod",
-        name="Rifle Manufacturing",
+        task_id="blakerow_prod",
+        name="Blakerow 871 Production",
         task_type="production",
         base_priority=4.0
     )
     rifle_production.upstream_dependencies.add("component_prod")
     
     ammo_production = Task(
-        task_id="ammo_prod",
-        name="Ammunition Manufacturing", 
+        task_id="ammo_762_prod",
+        name="7.62 mm Ammo Production", 
         task_type="production",
         base_priority=3.5
     )
@@ -66,55 +66,55 @@ def create_logistics_scenario():
     
     # Transport tasks (depend on production)
     rifle_transport = Task(
-        task_id="rifle_transport",
-        name="Rifle Transport to Front",
+        task_id="blakerow_transport",
+        name="Blakerow 871 Transport to Front",
         task_type="transport",
         base_priority=5.0
     )
-    rifle_transport.upstream_dependencies.add("rifle_prod")
+    rifle_transport.upstream_dependencies.add("blakerow_prod")
     
     ammo_transport = Task(
-        task_id="ammo_transport", 
-        name="Ammo Transport to Front",
+        task_id="ammo_762_transport", 
+        name="7.62 mm Ammo Transport to Front",
         task_type="transport",
         base_priority=6.0  # High priority - troops need ammo
     )
-    ammo_transport.upstream_dependencies.add("ammo_prod")
+    ammo_transport.upstream_dependencies.add("ammo_762_prod")
     
     # Medical supplies (independent production, higher priority)
     medical_production = Task(
-        task_id="medical_prod",
-        name="Medical Supplies Production",
+        task_id="bandages_prod",
+        name="Bandages Production",
         task_type="production",
         base_priority=7.0
     )
     
     medical_transport = Task(
-        task_id="medical_transport",
-        name="Medical Transport to Front",
+        task_id="bandages_transport",
+        name="Bandages Transport to Front",
         task_type="transport", 
         base_priority=8.0  # Critical priority
     )
-    medical_transport.upstream_dependencies.add("medical_prod")
+    medical_transport.upstream_dependencies.add("bandages_prod")
     
     # Artillery production (also blocked independently)
     artillery_production = Task(
-        task_id="artillery_prod",
-        name="Artillery Shell Production",
+        task_id="120mm_shell_prod",
+        name="120 mm Shell Production",
         task_type="production",
         base_priority=4.5
     )
     artillery_production.mark_blocked()
     # This has been blocked for 4 hours
-    artillery_production.blocked_since = datetime.utcnow() - timedelta(hours=4)
+    artillery_production.blocked_since = datetime.now(timezone.utc) - timedelta(hours=4)
     
     artillery_transport = Task(
-        task_id="artillery_transport",
-        name="Artillery Transport to Front",
+        task_id="120mm_pallet_transport",
+        name="120 mm Pallet Transport to Front (120 shells each)",
         task_type="transport",
         base_priority=5.5
     )
-    artillery_transport.upstream_dependencies.add("artillery_prod")
+    artillery_transport.upstream_dependencies.add("120mm_shell_prod")
     
     # Add all tasks to calculator
     tasks = [
@@ -142,18 +142,18 @@ def demonstrate_priority_algorithm():
     
     calc, tasks = create_logistics_scenario()
     
-    print(f"\n{'Task Analysis:':<20}")
+    print("{:<20}".format("\nTask Analysis:"))
     print("-" * 60)
     
     # Get priority rankings
     rankings = calc.get_priority_rankings()
     
-    print(f"{'Rank':<5} {'Task ID':<20} {'Priority':<10} {'Type':<15} {'Status':<12}")
+    print("{:<5} {:<20} {:<10} {:<15} {:<12}".format("Rank", "Task ID", "Priority", "Type", "Status"))
     print("-" * 60)
     
     for i, (task_id, priority, details) in enumerate(rankings):
         task = calc.get_task(task_id)
-        print(f"{i+1:<5} {task_id:<20} {priority:<10.2f} {task.task_type:<15} {task.status.value:<12}")
+        print("{:<5} {:<20} {:<10.2f} {:<15} {:<12}".format(i+1, task_id, priority, task.task_type, task.status.value))
     
     print("\n" + "=" * 60)
     print("DETAILED PRIORITY ANALYSIS")
@@ -163,7 +163,7 @@ def demonstrate_priority_algorithm():
     top_tasks = rankings[:5]
     
     for i, (task_id, priority, details) in enumerate(top_tasks):
-        print(f"\n{i+1}. ANALYSIS FOR: {calc.get_task(task_id).name}")
+        print("\n{}. ANALYSIS FOR: {}".format(i+1, calc.get_task(task_id).name))
         print("-" * 40)
         calc.print_priority_analysis(task_id)
     
@@ -197,7 +197,7 @@ def demonstrate_time_pressure_effect():
     calc.add_task(dependent_task)
     
     print("\nPriority evolution over time:")
-    print(f"{'Hours Blocked':<15} {'Time Multiplier':<18} {'Final Priority':<15}")
+    print("{:<15} {:<18} {:<15}".format("Hours Blocked", "Time Multiplier", "Final Priority"))
     print("-" * 50)
     
     test_hours = [0, 1, 2, 4, 8, 12, 24, 48]
@@ -209,7 +209,7 @@ def demonstrate_time_pressure_effect():
         priority, details = calc.calculate_fluid_pressure("front_delivery")
         time_mult = details["time_multiplier"]
         
-        print(f"{hours:<15} {time_mult:<18.3f} {priority:<15.2f}")
+        print("{:<15} {:<18} {:<15}".format(hours, round(time_mult, 3), round(priority, 2)))
     
     print("\nAs you can see, priority increases exponentially with blockage duration,")
     print("simulating increasing 'pressure' like water building behind a dam.")

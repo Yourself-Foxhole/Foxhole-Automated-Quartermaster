@@ -52,11 +52,11 @@ class GraphTaskIntegrator:
             node_obj = node_data.get("node")
 
             # Determine task properties
-            task_id = f"prod_{node_id}"
+            task_id = "prod_{}".format(node_id)
             if node_obj:
                 name = getattr(node_obj, "name", node_id)
                 category = getattr(node_obj, "category", "production")
-                task_type = f"{category}_production"
+                task_type = "{}_production".format(category)
             else:
                 name = node_id
                 task_type = "production"
@@ -113,8 +113,8 @@ class GraphTaskIntegrator:
         # Create tasks for each inventory node
         for node_id, inventory_node in inventory_graph.nodes.items():
             # Create transport/supply tasks based on inventory status
-            task_id = f"supply_{node_id}"
-            name = f"Supply {inventory_node.location_name}"
+            task_id = "supply_{}".format(node_id)
+            name = "Supply {}".format(inventory_node.location_name)
 
             # Determine priority based on inventory status and delta
             base_priority = base_priority_map.get(node_id, self._get_priority_from_inventory_status(inventory_node))
@@ -245,8 +245,8 @@ class GraphTaskIntegrator:
             1 for task in self.priority_calc.task_graph.values()
             if task.status == TaskStatus.BLOCKED
         )
-        report.append(f"Total tasks analyzed: {total_tasks}")
-        report.append(f"Currently blocked tasks: {blocked_count}")
+        report.append("Total tasks analyzed: {}".format(total_tasks))
+        report.append("Currently blocked tasks: {}".format(blocked_count))
         report.append("")
         report.append("TOP PRIORITY RECOMMENDATIONS:")
 
@@ -256,7 +256,7 @@ class GraphTaskIntegrator:
             status = task.status.value if task else "unknown"
             blocked_count = details.get("blocked_count", 0)
 
-            report.append(f"{i+1:<5} {node_id:<15} {priority:<10.2f} {blocked_count:<15} {status}")
+            report.append("{:<5} {:<15} {:<10.2f} {:<15} {}".format(i+1, node_id, priority, blocked_count, status))
 
         critical_bottlenecks = []
 
@@ -274,8 +274,8 @@ class GraphTaskIntegrator:
         report.append("CRITICAL BOTTLENECKS:")
 
         for node_id, name, dependent_count, blocked_hours in critical_bottlenecks[:5]:
-            report.append(f"- {node_id}: {name}")
-            report.append(f"  Blocking {dependent_count} downstream tasks for {blocked_hours:.1f} hours")
+            report.append("- {}: {}".format(node_id, name))
+            report.append("  Blocking {} downstream tasks for {} hours".format(dependent_count, round(blocked_hours, 1)))
 
         if not critical_bottlenecks:
             report.append("No critical bottlenecks detected.")

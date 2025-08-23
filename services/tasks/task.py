@@ -53,4 +53,4 @@ class Task:
 
     def __repr__(self) -> str:
         """Return string representation of the task."""
-        return f"Task({self.task_id}, {self.name}, {self.status.value})"
+        return "Task({}, {}, {})".format(self.task_id, self.name, self.status.value)
