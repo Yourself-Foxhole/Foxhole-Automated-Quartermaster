@@ -13,9 +13,6 @@ The network produces Basic Materials from Salvage, then converts them to Soldier
 Target: 3000 Basic Materials and 200 Soldier's Supplies at the front.
 """
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.inventory.production_nodes import (
     BaseNode, BaseType, ProductionNode, RefineryNode, FactoryNode

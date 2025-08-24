@@ -7,8 +7,6 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-# Add the project root to sys.path so 'data' can be imported
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
 
 # Assume DiscordBot is imported from the correct location
 from data.discord.discord import DiscordBot
