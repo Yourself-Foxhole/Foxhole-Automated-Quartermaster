@@ -96,9 +96,9 @@ def demonstrate_production_graph_integration():
     print("Creating tasks from production graph...")
     tasks = integrator.create_tasks_from_production_graph(prod_graph, priority_map)
     
-    print(f"Created {len(tasks)} production tasks:")
+    print("Created {} production tasks:".format(len(tasks)))
     for task in tasks:
-        print(f"  - {task.name} (Priority: {task.base_priority})")
+        print("  - {} (Priority: {})".format(task.name, task.base_priority))
     
     print("\nSimulating production blockages...")
     # Simulate Basic Materials being blocked (resource shortage)
@@ -110,7 +110,7 @@ def demonstrate_production_graph_integration():
     print("\nGenerating priority analysis...")
     recommendations = integrator.get_priority_recommendations(10)
     
-    print(f"\n{'Rank':<5} {'Node':<10} {'Task':<25} {'Priority':<10} {'Details'}")
+    print("\n{:<5} {:<10} {:<25} {:<10} {}".format("Rank", "Node", "Task", "Priority", "Details"))
     print("-" * 70)
     
     for i, (node_id, task_name, priority, details) in enumerate(recommendations):
@@ -135,18 +135,18 @@ def demonstrate_inventory_graph_integration():
     print("Creating tasks from inventory graph...")
     tasks = integrator.create_tasks_from_inventory_graph(inv_graph)
     
-    print(f"Created {len(tasks)} supply tasks:")
+    print("Created {} supply tasks:".format(len(tasks)))
     for task in tasks:
-        print(f"  - {task.name} (Priority: {task.base_priority:.2f}, Status: {task.status.value})")
+        print("  - {} (Priority: {}, Status: {})".format(task.name, round(task.base_priority, 2), task.status.value))
     
     print("\nAnalyzing supply chain priorities...")
     recommendations = integrator.get_priority_recommendations(10)
     
-    print(f"\n{'Rank':<5} {'Location':<15} {'Task':<25} {'Priority':<10}")
+    print("\n{:<5} {:<15} {:<25} {:<10}".format("Rank", "Location", "Task", "Priority"))
     print("-" * 60)
     
     for i, (node_id, task_name, priority, details) in enumerate(recommendations):
-        print(f"{i+1:<5} {node_id:<15} {task_name:<25} {priority:<10.2f}")
+        print("{:<5} {:<15} {:<25} {:<10.2f}".format(i+1, node_id, task_name, priority))
     
     print("\n" + integrator.generate_priority_report())
 
@@ -173,9 +173,9 @@ def demonstrate_combined_scenario():
     # Set up inventory graph
     inv_graph = create_sample_inventory_graph()
     inv_tasks = integrator.create_tasks_from_inventory_graph(inv_graph)
-
-    print(f"Integrated system with {len(prod_tasks)} production + {len(inv_tasks)} supply tasks")
-
+    
+    print("Integrated system with {} production + {} supply tasks".format(len(prod_tasks), len(inv_tasks)))
+    
     # Simulate multiple crises
     print("\nSimulating multiple simultaneous crises:")
     print("1. Salvage yard contested (production blocked)")
@@ -185,12 +185,15 @@ def demonstrate_combined_scenario():
     integrator.mark_production_blocked("salvage", "Contested")
     integrator.mark_production_blocked("bmats", "Contested")
     
+    integrator.mark_production_blocked("iron", "Mine flooded")
+    integrator.mark_production_blocked("steel", "Under artillery fire")
+    
     print("\nFluid dynamics priority analysis results:")
     print("(Higher priority = more urgent due to blocking pressure)")
     
     recommendations = integrator.get_priority_recommendations(8)
     
-    print(f"\n{'Priority':<10} {'Type':<12} {'Issue':<30} {'Recommendation'}")
+    print("\n{:<10} {:<12} {:<30} {}".format("Priority", "Type", "Issue", "Recommendation"))
     print("-" * 75)
     
     for i, (node_id, task_name, priority, details) in enumerate(recommendations):
@@ -201,12 +204,12 @@ def demonstrate_combined_scenario():
             if "prod_" in task.task_id:
                 task_type = "Production"
                 if task.status.value == "blocked":
-                    issue = f"Blocked: {task.metadata.get('block_reason', 'Unknown')}"
+                    issue = "Blocked: {}".format(task.metadata.get("block_reason", "Unknown"))
                     recommendation = "Unblock immediately - affects downstream"
                 else:
                     blocked_count = details.get("blocked_count", 0)
                     if blocked_count > 0:
-                        issue = f"Waiting on {blocked_count} blocked dependencies"
+                        issue = "Waiting on {} blocked dependencies".format(blocked_count)
                         recommendation = "Will auto-resolve when dependencies unblock"
                     else:
                         issue = "No blocking issues"
@@ -224,9 +227,9 @@ def demonstrate_combined_scenario():
             issue = "Analysis unavailable"
             recommendation = "Manual investigation required"
         
-        print(f"{priority:<10.2f} {task_type:<12} {issue:<30} {recommendation}")
+        print("{:<10.2f} {:<12} {:<30} {}".format(priority, task_type, issue, recommendation))
     
-    print(f"\n{'=' * 75}")
+    print("\n{}".format("=" * 75))
     print("KEY INSIGHTS FROM FLUID DYNAMICS ANALYSIS:")
     print("- Blocked upstream tasks create 'pressure' that elevates downstream priorities")
     print("- Multiple blockages compound the effect (like multiple dams)")
