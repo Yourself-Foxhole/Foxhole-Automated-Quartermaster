@@ -5,9 +5,6 @@ This example shows how different tracking modes affect what data is captured
 and how the system responds to user configuration choices.
 """
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.inventory.facility_node import (
     FacilityNode, FacilityBuilding,

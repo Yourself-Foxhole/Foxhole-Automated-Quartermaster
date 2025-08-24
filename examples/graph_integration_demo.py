@@ -2,9 +2,6 @@
 Integration example showing how to use the fluid dynamics priority system
 with existing production and inventory graphs.
 """
-import sys
-import os
-sys.path.append('/home/runner/work/Foxhole-Automated-Quartermaster/Foxhole-Automated-Quartermaster')
 
 import networkx as nx
 from services.tasks import GraphTaskIntegrator

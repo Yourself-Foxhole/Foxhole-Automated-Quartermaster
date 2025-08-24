@@ -7,9 +7,6 @@ algorithm for the Foxhole Automated Quartermaster system.
 
 Run this script to see the algorithm in action with realistic logistics scenarios.
 """
-import sys
-import os
-sys.path.append('/home/runner/work/Foxhole-Automated-Quartermaster/Foxhole-Automated-Quartermaster')
 
 def main():
     print("🌊 FLUID DYNAMICS PRIORITY ALGORITHM DEMONSTRATION 🌊")

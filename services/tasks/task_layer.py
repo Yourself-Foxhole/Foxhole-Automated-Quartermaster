@@ -138,15 +138,16 @@ class TaskGenerator:
                 if delta > 0:
                     # Transportation: Find upstream nodes with surplus
                     for edge in node.edges:
-                        if isinstance(edge, InventoryNode) and edge.inventory.get(item, 0) > 0:
-                            qty = min(edge.inventory[item], delta)
+                        source_node = getattr(edge, 'source', None)
+                        if source_node and hasattr(source_node, 'inventory') and source_node.inventory.get(item, 0) > 0:
+                            qty = min(source_node.inventory[item], delta)
                             signals = {
                                 "delta": delta,
-                                "inventory": edge.inventory.get(item, 0),
+                                "inventory": source_node.inventory.get(item, 0),
                                 "status": self.status_to_signal(node.status),
-                                # "distance": self.compute_distance(edge, node), # Placeholder for future
+                                # "distance": self.compute_distance(source_node, node), # Placeholder for future
                             }
-                            task = TransportationTask(source=edge, destination=node, item=item, quantity=qty, signals=signals, fluid_calc=self.fluid_calc)
+                            task = TransportationTask(source=source_node, destination=node, item=item, quantity=qty, signals=signals, fluid_calc=self.fluid_calc)
                             tasks.append(task)
                             # Add task to fluid dynamics calculator for dependency tracking
                             self.fluid_calc.add_task(task)

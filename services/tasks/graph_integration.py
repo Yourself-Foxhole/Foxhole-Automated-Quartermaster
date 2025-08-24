@@ -46,53 +46,28 @@ class GraphTaskIntegrator:
 
         """
         if base_priority_map is None:
-            if base_priority_map is None:
-                base_priority_map = {}
+            base_priority_map = {}
 
-            created_tasks = []
-
-            # Create tasks for each edge in the inventory graph
-            for edge in getattr(inventory_graph, 'edges', []):
-                source = getattr(edge, 'source', None)
-                target = getattr(edge, 'target', None)
-                source_id = getattr(source, 'node_id', "unknown") if source else "unknown"
-                target_id = getattr(target, 'node_id', "unknown") if target else "unknown"
-                edge_key = f"{source_id}->{target_id}"
-                source_name = getattr(source, 'location_name', str(source_id)) if source else str(source_id)
-                target_name = getattr(target, 'location_name', str(target_id)) if target else str(target_id)
-                name = f"Supply from {source_name} to {target_name}"
-                # Priority can be based on source inventory status, target needs, or edge/order properties
-                source_status = getattr(source, 'status', None)
-                target_status = getattr(target, 'status', None)
-                # Use a simple priority function for now
-                base_priority = base_priority_map.get(edge_key, 5.0)
-                # Autogenerate task_id unless a unique custom ID is required
-                custom_task_id = f"supply_{source_id}_to_{target_id}"
-                # Collision detection for custom IDs
-                if custom_task_id in self.task_to_node_map:
-                    import uuid
-                    custom_task_id = f"{custom_task_id}_{uuid.uuid4()}"
-                task = Task(
-                    task_id=custom_task_id,
-                    name=name,
-                    task_type="supply_edge",
-                    base_priority=base_priority
-                )
-                # Blocked if source or target is critical/blocked
-                if source_status in ["critical", "blocked"] or target_status in ["critical", "blocked"]:
-                    task.mark_blocked()
-                # Map relationships
-                self.node_to_task_map[edge_key] = custom_task_id
-                self.task_to_node_map[custom_task_id] = edge_key
-                created_tasks.append(task)
-                self.priority_calc.add_task(task)
-
-            # Edge-tasks are independent unless a more complex supply chain is modeled
-            return created_tasks
-            # Map relationships for later dependency setup
-            self.node_to_task_map[node_id] = task_id
-            self.task_to_node_map[task_id] = node_id
-
+        created_tasks = []
+        # Create tasks for each node in the production graph
+        for node_id in production_graph.nodes:
+            node_data = production_graph.nodes[node_id]
+            name = node_data.get('name', str(node_id))
+            task_type = node_data.get('task_type', 'production')
+            base_priority = base_priority_map.get(node_id, 5.0)
+            # Autogenerate task_id unless a unique custom ID is required
+            custom_task_id = f"prod_{node_id}"
+            if custom_task_id in self.task_to_node_map:
+                import uuid
+                custom_task_id = f"{custom_task_id}_{uuid.uuid4()}"
+            task = Task(
+                task_id=custom_task_id,
+                name=name,
+                task_type=task_type,
+                base_priority=base_priority
+            )
+            self.node_to_task_map[node_id] = custom_task_id
+            self.task_to_node_map[custom_task_id] = node_id
             created_tasks.append(task)
             self.priority_calc.add_task(task)
 
@@ -108,60 +83,8 @@ class GraphTaskIntegrator:
                 # In production graphs, source provides input to target
                 target_task.upstream_dependencies.add(source_task_id)
                 source_task.downstream_dependents.add(target_task_id)
-        
-        created_tasks = []
-        # Create tasks for each edge in the inventory graph
-        for node_id, inventory_node in inventory_graph.nodes.items():
-            for edge in inventory_node.edges:
-                source_id = node_id
-                target_id = edge.target.node_id
-                edge_key = (source_id, target_id)
-                task_id = f"supply_{source_id}_to_{target_id}"
-                name = f"Supply from {inventory_node.location_name} to {edge.target.location_name}"
-                # Priority can be based on source inventory status, target needs, or edge/order properties
-                base_priority = base_priority_map.get(edge_key, self._get_priority_from_inventory_status(inventory_node))
-                task = Task(
-                    task_id=task_id,
-                    name=name,
-                    task_type="supply_edge",
-                    base_priority=base_priority
-                )
-                # Blocked if source or target is critical/blocked
-                if inventory_node.status in ["critical", "blocked"] or getattr(edge.target, "status", None) in ["critical", "blocked"]:
-                    task.mark_blocked()
-                # Map relationships
-                self.node_to_task_map[edge_key] = task_id
-                self.task_to_node_map[task_id] = edge_key
-                created_tasks.append(task)
-                self.priority_calc.add_task(task)
-        # Dependencies between edge-tasks can be set up if needed (e.g., chained supply routes)
-        # For now, edge-tasks are independent unless a more complex supply chain is modeled
+
         return created_tasks
-
-    def mark_production_blocked(self, node_id: str, reason: str = "") -> bool:
-        """Mark a production node as blocked, which will affect priority calculations.
-        
-        Args:
-            node_id: ID of the production node to mark as blocked
-            reason: Optional reason for the blockage
-            
-        Returns:
-            True if task was found and marked blocked, False otherwise
-
-        """
-        task_id = self.node_to_task_map.get(node_id)
-        if not task_id:
-            return False
-
-        task = self.priority_calc.get_task(task_id)
-        if not task:
-            return False
-
-        task.mark_blocked()
-        if reason:
-            task.metadata["block_reason"] = reason
-
-        return True
 
     def mark_production_unblocked(self, node_id: str) -> bool:
         """Mark a production node as unblocked.
