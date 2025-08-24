@@ -34,7 +34,7 @@ def create_logistics_scenario():
     )
     salvage_extraction.mark_blocked()
     # Simulate this has been blocked for 2 hours
-    salvage_extraction.blocked_since = datetime.utcnow() - timedelta(hours=2)
+    salvage_extraction.blocked_since = datetime.now(timezone.utc) - timedelta(hours=2)
     
     # Component production (depends on salvage)
     component_production = Task(
@@ -202,7 +202,7 @@ def demonstrate_time_pressure_effect():
     
     for hours in test_hours:
         # Simulate blocked duration
-        blocked_task.blocked_since = datetime.utcnow() - timedelta(hours=hours)
+        blocked_task.blocked_since = datetime.now(timezone.utc) - timedelta(hours=hours)
         
         priority, details = calc.calculate_fluid_pressure("front_delivery")
         time_mult = details["time_multiplier"]

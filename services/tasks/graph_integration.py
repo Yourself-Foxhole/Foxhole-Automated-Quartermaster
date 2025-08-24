@@ -264,15 +264,12 @@ class GraphTaskIntegrator:
 
         return "\n".join(report)
     
-    def _get_default_priority_by_type(self, item_name: str) -> float:
-        """Get default priority based on item name.
-
     def _get_default_priority_by_type(self, item_or_type: str) -> float:
         """Get default priority based on production type or item name.
 
         This is a placeholder for future item-specific tuning.
         BMATs and shirts are highest priority, followed by other essentials.
-    """
+        """
         item_priority_table = {
             "Basic Materials": 10.0,  # BMATs
             "Shirts": 9.5,
@@ -284,5 +281,5 @@ class GraphTaskIntegrator:
             # Add more items as needed
         }
         # Default fallback priority for unknown items
-        return item_priority_table.get(item_name, 5.0)
+        return item_priority_table.get(item_or_type, 5.0)
     
