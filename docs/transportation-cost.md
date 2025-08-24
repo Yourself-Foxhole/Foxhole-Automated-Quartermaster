@@ -4,6 +4,96 @@
 
 The transportation cost algorithm models the movement of goods across the Foxhole logistics network using an inventory graph. Each edge in the graph represents a possible route between two nodes (locations), and can be assigned a transportation time. This time is a key factor in calculating the cost and efficiency of moving items.
 
+## Transport Time Attribute
+
+### Basic Usage
+
+The `InventoryGraph` supports an optional `transport_time` attribute on edges that represents the time in hours to transport items via that route:
+
+```python
+from services.inventory.inventory_graph import InventoryGraph, InventoryNode
+
+# Create graph and nodes
+graph = InventoryGraph()
+depot = InventoryNode("depot", "Supply Depot")
+frontline = InventoryNode("frontline", "Frontline Base")
+graph.add_node(depot)
+graph.add_node(frontline)
+
+# Add edge with transport time (3.0 hours)
+graph.add_edge("depot", "frontline", 
+               allowed_items=["rifle"], 
+               transport_time=3.0)
+
+# Add edge without transport time (defaults to None)
+graph.add_edge("frontline", "depot", 
+               allowed_items=["ammo"])
+```
+
+### Edge Methods
+
+```python
+# Get the edge
+edge = graph.edges[0]
+
+# Check if edge has transport time configured
+if edge.has_transport_time():
+    time = edge.get_transport_time()
+    print(f"Transport time: {time} hours")
+
+# Set or update transport time
+edge.set_transport_time(2.5)
+
+# Clear transport time
+edge.set_transport_time(None)
+```
+
+### Integration with Task Generation
+
+When the `TaskGenerator` creates transportation tasks, it automatically includes the `transport_time` in the task's priority signals when available:
+
+```python
+from services.tasks.task_layer import TaskGenerator
+
+# Set up nodes with inventory and demand
+source.inventory = {"rifle": 100}
+target.delta = {"rifle": 50}
+
+# Create tasks
+task_gen = TaskGenerator([source, target])
+tasks = task_gen.get_actionable_tasks()
+
+# Transportation tasks will include transport_time in priority signals
+for task in tasks:
+    if task.task_type == "transportation" and "transport_time" in task.priority.signals:
+        print(f"Transport time: {task.priority.signals['transport_time']} hours")
+```
+
+### Priority Calculation
+
+Transport time is integrated into the priority system as a signal with a default weight of `-0.3`. This negative weight means shorter transport times result in higher priority:
+
+```python
+from services.tasks.task_layer import Priority
+
+signals = {
+    "delta": 20.0,          # Items needed
+    "inventory": 10.0,      # Available inventory  
+    "status": 1.0,          # Node status (low)
+    "transport_time": 2.5   # Transport time in hours
+}
+
+priority = Priority(signals)
+# Score calculation includes: ... + (-0.3 * 2.5) = ... - 0.75
+```
+
+### Backward Compatibility
+
+- Existing code that doesn't use `transport_time` continues to work unchanged
+- TaskGenerator gracefully handles edges without transport time
+- Priority calculations work normally when `transport_time` signal is absent
+- Default behavior is preserved when transport time is not configured
+
 ## Edge Times and LogiWaze Integration
 
 - **Edge Time Input:**
