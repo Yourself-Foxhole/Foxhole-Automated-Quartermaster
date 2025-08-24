@@ -73,6 +73,44 @@ class InventoryEdge:
     def get_orders(self) -> List[Order]:
         return self.orders
 
+    def set_transportation_config(self, transportation_config: Dict[str, Any]) -> None:
+        """
+        Set transportation cost configuration for this edge.
+        
+        Args:
+            transportation_config: Dict containing transportation settings like:
+                - transportation_enabled: bool
+                - vehicle_types: List[str]
+                - transport_times: Dict[str, float]
+                - capacity_limits: Dict[str, Any]
+        """
+        if "transportation_cost" not in self.user_config:
+            self.user_config["transportation_cost"] = {}
+        self.user_config["transportation_cost"].update(transportation_config)
+
+    def get_transportation_config(self) -> Dict[str, Any]:
+        """Get transportation cost configuration for this edge."""
+        return self.user_config.get("transportation_cost", {})
+
+    def is_transportation_enabled(self) -> bool:
+        """Check if transportation cost features are enabled for this edge."""
+        transport_config = self.get_transportation_config()
+        return transport_config.get("transportation_enabled", False)
+
+    def get_transport_time(self, vehicle_type: str = "base_truck") -> Optional[float]:
+        """
+        Get transportation time for a specific vehicle type on this edge.
+        
+        Args:
+            vehicle_type: Type of vehicle (e.g., "base_truck", "flatbed", etc.)
+            
+        Returns:
+            Transportation time in hours, or None if not configured
+        """
+        transport_config = self.get_transportation_config()
+        transport_times = transport_config.get("transport_times", {})
+        return transport_times.get(vehicle_type)
+
 class InventoryGraph:
     def __init__(self):
         self.nodes: Dict[str, InventoryNode] = {}
