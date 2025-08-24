@@ -1,0 +1,156 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "tool": "Foxhole Automated Quartermaster - Network Onboarding",
+    "description": "Foxhole logistics network configuration"
+  },
+  "nodes": {
+    "node_001": {
+      "id": "node_001",
+      "location_name": "Westgate Mass Production Factory",
+      "unit_size": "crate",
+      "base_type": "Production",
+      "metadata": {
+        "facility_type": "MPF",
+        "description": "Main MPF for vehicle production",
+        "hex": "Westgate",
+        "frontline": false
+      },
+      "inventory": {},
+      "delta": {},
+      "status": "unknown",
+      "production_type": "MassProductionFactory"
+    },
+    "node_002": {
+      "id": "node_002",
+      "location_name": "Heartlands Basic Materials Refinery",
+      "unit_size": "crate",
+      "base_type": "CrudeOil",
+      "metadata": {
+        "facility_type": "Refinery",
+        "refinery_type": "Basic Materials Refinery",
+        "description": "Produces BMats and EMats",
+        "hex": "Heartlands",
+        "frontline": false
+      },
+      "inventory": {},
+      "delta": {},
+      "status": "unknown",
+      "production_type": "Facility",
+      "facility_type": "WorldStructureRefinery"
+    },
+    "node_003": {
+      "id": "node_003",
+      "location_name": "Deadlands Arms Factory",
+      "unit_size": "crate",
+      "base_type": "Production",
+      "metadata": {
+        "facility_type": "Factory",
+        "factory_type": "Small Arms Factory",
+        "description": "Frontline weapons production",
+        "hex": "Deadlands",
+        "frontline": true
+      },
+      "inventory": {},
+      "delta": {},
+      "status": "unknown",
+      "production_type": "Factory"
+    },
+    "node_004": {
+      "id": "node_004",
+      "location_name": "Westgate Supply Depot",
+      "unit_size": "crate",
+      "base_type": "Facility",
+      "metadata": {
+        "facility_type": "Storage Depot",
+        "description": "Main supply depot",
+        "hex": "Westgate",
+        "frontline": false
+      },
+      "inventory": {},
+      "delta": {},
+      "status": "unknown",
+      "production_type": "Facility"
+    },
+    "node_005": {
+      "id": "node_005",
+      "location_name": "Fisherman's Row Seaport",
+      "unit_size": "crate",
+      "base_type": "Facility",
+      "metadata": {
+        "facility_type": "Seaport",
+        "description": "Maritime logistics hub",
+        "hex": "Fisherman's Row",
+        "frontline": false
+      },
+      "inventory": {},
+      "delta": {},
+      "status": "unknown",
+      "production_type": "Facility"
+    }
+  },
+  "edges": [
+    {
+      "source": "node_002",
+      "target": "node_001",
+      "allowed_items": [
+        "bmats",
+        "emats",
+        "refined_materials"
+      ],
+      "production_process": null,
+      "user_config": null
+    },
+    {
+      "source": "node_001",
+      "target": "node_004",
+      "allowed_items": [
+        "vehicles",
+        "heavy_equipment",
+        "uniforms"
+      ],
+      "production_process": null,
+      "user_config": null
+    },
+    {
+      "source": "node_002",
+      "target": "node_003",
+      "allowed_items": [
+        "bmats",
+        "emats"
+      ],
+      "production_process": null,
+      "user_config": null
+    },
+    {
+      "source": "node_003",
+      "target": "node_004",
+      "allowed_items": [
+        "rifles",
+        "ammo",
+        "explosives"
+      ],
+      "production_process": null,
+      "user_config": null
+    },
+    {
+      "source": "node_004",
+      "target": "node_005",
+      "allowed_items": [
+        "all_supplies"
+      ],
+      "production_process": null,
+      "user_config": null
+    },
+    {
+      "source": "node_005",
+      "target": "node_003",
+      "allowed_items": [
+        "specialty_materials",
+        "components"
+      ],
+      "production_process": null,
+      "user_config": null
+    }
+  ]
+}
