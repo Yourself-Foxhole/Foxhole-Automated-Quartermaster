@@ -1,0 +1,20 @@
+# Discord bot framework
+discord.py>=2.3.2
+
+# Database and ORM
+sqlalchemy>=2.0.23
+alembic>=1.13.1
+
+# Configuration management
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Async utilities
+asyncio-mqtt>=0.16.1
+
+# Logging and monitoring
+structlog>=23.2.0
+
+# Security and validation
+cryptography>=41.0.7
