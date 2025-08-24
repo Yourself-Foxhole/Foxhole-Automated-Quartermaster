@@ -55,12 +55,14 @@ class InventoryEdge:
     def __init__(self, source: 'InventoryNode', target: 'InventoryNode',
                  allowed_items: Optional[List[str]] = None,
                  production_process: Optional[str] = None,
-                 user_config: Optional[Dict[str, Any]] = None):
+                 user_config: Optional[Dict[str, Any]] = None,
+                 transport_time: Optional[float] = None):
         self.source = source
         self.target = target
         self.allowed_items = allowed_items or []
         self.production_process = production_process
         self.user_config = user_config or {}
+        self.transport_time = transport_time  # Time in hours to transport items via this edge
         self.orders: List[Order] = []  # List of Order objects attached to this edge
 
     def add_order(self, order: Order):
@@ -73,43 +75,27 @@ class InventoryEdge:
     def get_orders(self) -> List[Order]:
         return self.orders
 
-    def set_transportation_config(self, transportation_config: Dict[str, Any]) -> None:
+    def set_transport_time(self, time_hours: Optional[float]) -> None:
         """
-        Set transportation cost configuration for this edge.
+        Set transportation time for this edge.
         
         Args:
-            transportation_config: Dict containing transportation settings like:
-                - transportation_enabled: bool
-                - vehicle_types: List[str]
-                - transport_times: Dict[str, float]
-                - capacity_limits: Dict[str, Any]
+            time_hours: Time in hours to transport items via this edge, or None to disable
         """
-        if "transportation_cost" not in self.user_config:
-            self.user_config["transportation_cost"] = {}
-        self.user_config["transportation_cost"].update(transportation_config)
+        self.transport_time = time_hours
 
-    def get_transportation_config(self) -> Dict[str, Any]:
-        """Get transportation cost configuration for this edge."""
-        return self.user_config.get("transportation_cost", {})
-
-    def is_transportation_enabled(self) -> bool:
-        """Check if transportation cost features are enabled for this edge."""
-        transport_config = self.get_transportation_config()
-        return transport_config.get("transportation_enabled", False)
-
-    def get_transport_time(self, vehicle_type: str = "base_truck") -> Optional[float]:
+    def get_transport_time(self) -> Optional[float]:
         """
-        Get transportation time for a specific vehicle type on this edge.
+        Get transportation time for this edge.
         
-        Args:
-            vehicle_type: Type of vehicle (e.g., "base_truck", "flatbed", etc.)
-            
         Returns:
-            Transportation time in hours, or None if not configured
+            Transportation time in hours, or None if not set
         """
-        transport_config = self.get_transportation_config()
-        transport_times = transport_config.get("transport_times", {})
-        return transport_times.get(vehicle_type)
+        return self.transport_time
+
+    def has_transport_time(self) -> bool:
+        """Check if this edge has a transport time configured."""
+        return self.transport_time is not None
 
 class InventoryGraph:
     def __init__(self):
@@ -122,10 +108,11 @@ class InventoryGraph:
     def add_edge(self, source_id: str, target_id: str,
                  allowed_items: Optional[List[str]] = None,
                  production_process: Optional[str] = None,
-                 user_config: Optional[Dict[str, Any]] = None):
+                 user_config: Optional[Dict[str, Any]] = None,
+                 transport_time: Optional[float] = None):
         source = self.nodes[source_id]
         target = self.nodes[target_id]
-        edge = InventoryEdge(source, target, allowed_items, production_process, user_config)
+        edge = InventoryEdge(source, target, allowed_items, production_process, user_config, transport_time)
         self.edges.append(edge)
         source.add_edge(edge)
 
@@ -195,7 +182,8 @@ class InventoryGraph:
             if node.metadata:
                 print(f"  Metadata: {node.metadata}")
             for edge in node.edges:
-                print(f"    -> {edge.target.node_id} ({edge.target.location_name}) | Allowed: {edge.allowed_items} | Production: {edge.production_process} | User Config: {edge.user_config}")
+                transport_info = f" | Transport Time: {edge.transport_time}h" if edge.transport_time is not None else ""
+                print(f"    -> {edge.target.node_id} ({edge.target.location_name}) | Allowed: {edge.allowed_items} | Production: {edge.production_process}{transport_info} | User Config: {edge.user_config}")
         print("")
 
 
