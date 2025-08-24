@@ -56,7 +56,7 @@ def create_logistics_scenario():
     
     ammo_production = Task(
         task_id="ammo_prod",
-        name="Ammunition Manufacturing", 
+        name="120 mm Shell", 
         task_type="production",
         base_priority=3.5
     )
