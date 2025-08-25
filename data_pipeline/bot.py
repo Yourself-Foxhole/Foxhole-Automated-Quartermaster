@@ -1,7 +1,7 @@
 """
 Discord bot integration with the presentation layer.
 
-This module demonstrates how to integrate the EmbedRenderer with Discord bot commands
+This module shows how to integrate the EmbedRenderer with Discord bot commands.
 to send formatted messages using Jinja2 templates.
 """
 
@@ -11,9 +11,10 @@ from typing import Optional
 
 import disnake
 from disnake.ext import commands
+from disnake.ext.commands import CommandSyncFlags
 
 # Import the presentation layer
-from src.presentation import EmbedRenderer
+from presentation import EmbedRenderer
 # Import existing services
 from services.tasks.task import Task, TaskStatus
 
@@ -22,11 +23,16 @@ class FoxholeBot(commands.Bot):
     """
     Foxhole Automated Quartermaster Discord Bot with presentation layer integration.
     
-    This bot demonstrates how to use the EmbedRenderer to send formatted messages
+    This bot shows how to use the EmbedRenderer to send formatted messages
     for various logistics operations.
     """
     
     def __init__(self, *args, **kwargs):
+        # Remove deprecated sync_commands if present
+        kwargs.pop('sync_commands', None)
+        # Add command_sync_flags if not present
+        if 'command_sync_flags' not in kwargs:
+            kwargs['command_sync_flags'] = CommandSyncFlags.default()
         super().__init__(*args, **kwargs)
         self.embed_renderer = EmbedRenderer()
         self.logger = logging.getLogger(__name__)
@@ -222,7 +228,7 @@ class FoxholeBot(commands.Bot):
                     "origin": "Westgate Depot",
                     "destination": "Reaching Trail Storage",
                     "cargo": "Mixed ammunition and medical supplies",
-                    "blocker": "Route contested - waiting for frontline stabilization"
+                    "blocker": "Route contested — waiting for frontline stabilization"
                 }
             ),
             "SUP-001": Task(
@@ -251,7 +257,7 @@ class FoxholeBot(commands.Bot):
         return task
 
 
-# Function to run the bot (used by main.py or testing)
+# Function to run the bot -- used by main.py or testing
 def create_bot(token: str) -> FoxholeBot:
     """
     Create and configure the Foxhole bot.
@@ -262,13 +268,9 @@ def create_bot(token: str) -> FoxholeBot:
     Returns:
         Configured FoxholeBot instance.
     """
-    intents = disnake.Intents.default()
-    intents.message_content = True
-    
     bot = FoxholeBot(
         command_prefix="!",
-        intents=intents,
-        sync_commands=True
+        intents=intents
     )
     
     return bot
