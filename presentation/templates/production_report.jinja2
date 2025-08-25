@@ -1,0 +1,41 @@
+{
+  "title": "📈 Production Report - {{ facility_name }}",
+  "description": "Daily production summary for {{ date.strftime('%B %d, %Y') }}",
+  "color": 3447003,
+  "fields": [
+    {
+      "name": "🏭 Facility",
+      "value": "{{ facility_name }}",
+      "inline": true
+    },
+    {
+      "name": "📅 Production Date",
+      "value": "{{ date.strftime('%Y-%m-%d') }}",
+      "inline": true
+    },
+    {
+      "name": "⚡ Efficiency",
+      "value": "{{ efficiency }}%",
+      "inline": true
+    }{% if items_produced %},
+    {
+      "name": "📦 Items Produced",
+      "value": "{% for item, quantity in items_produced.items() %}**{{ item | item_emoji }}:** {{ quantity }}{% if not loop.last %}\n{% endif %}{% endfor %}",
+      "inline": false
+    }{% endif %}{% if resource_consumption %},
+    {
+      "name": "⛽ Resources Consumed", 
+      "value": "{% for resource, amount in resource_consumption.items() %}**{{ resource }}:** {{ amount }}{% if not loop.last %}\n{% endif %}{% endfor %}",
+      "inline": false
+    }{% endif %}{% if next_production %},
+    {
+      "name": "🔮 Next Production Cycle",
+      "value": "{{ next_production }}",
+      "inline": false
+    }{% endif %}
+  ],
+  "footer": {
+    "text": "Production Report • {{ facility_name }}"
+  },
+  "timestamp": "{{ date.isoformat() }}"
+}
