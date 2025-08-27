@@ -1,3 +1,190 @@
+# Foxhole Logistics Network Onboarding Workflow
+
+## Overview
+
+The Network Onboarding CLI provides an interactive way to set up and configure Foxhole logistics networks. This tool guides users through creating a supply chain graph with MPFs, refineries, factories, facilities, and their connections.
+
+## Quick Start
+
+### Interactive Onboarding
+```bash
+python3 onboard_network.py
+```
+
+### Load Existing Network
+```bash
+python3 onboard_network.py --load network.yaml
+python3 onboard_network.py --status network.yaml
+```
+
+### Create Demo Network
+```bash
+python3 create_demo_network.py
+```
+
+## Onboarding Workflow
+
+### Step 1: Mass Production Facilities (MPFs)
+- Add MPFs by location/name
+- MPFs provide bulk production discounts for vehicles, ships, and equipment
+- Can skip if no MPF access
+
+### Step 2: Refineries
+- Add refineries by location and type:
+  - Basic Materials Refinery
+  - Explosive Materials Refinery
+  - Fuel Refinery
+  - Other/Custom
+- Refineries process raw materials into BMats, EMats, fuel, etc.
+
+### Step 3: Factories
+- Add factories by location and type:
+  - Small Arms Factory
+  - Heavy Arms Factory
+  - Ammunition Factory
+  - Utility Factory
+  - Medical Factory
+  - Other/Custom
+- Factories produce weapons, ammunition, and equipment
+
+### Step 4: Other Facilities
+- Add other logistics facilities:
+  - Storage Depot
+  - Seaport
+  - Garage
+  - Shipyard
+  - Construction Yard
+  - Other/Custom
+
+### Step 5: Network Connections
+- Connect facilities to define material flow
+- Specify allowed items for each connection (optional)
+- Creates directed edges in the logistics graph
+
+### Step 6: Frontline Status
+- Mark facilities as "frontline" for demo/testing
+- Helps prioritize logistics in war scenarios
+- Used for task prioritization and routing
+
+## File Formats
+
+### YAML Format (Recommended)
+```yaml
+metadata:
+  version: '1.0'
+  tool: Foxhole Automated Quartermaster - Network Onboarding
+  description: Foxhole logistics network configuration
+nodes:
+  node_001:
+    id: node_001
+    location_name: Westgate Mass Production Factory
+    unit_size: crate
+    base_type: Production
+    metadata:
+      facility_type: MPF
+      description: Main MPF for vehicle production
+      hex: Westgate
+      frontline: false
+    inventory: {}
+    delta: {}
+    status: unknown
+    production_type: MassProductionFactory
+edges:
+  - source: node_002
+    target: node_001
+    allowed_items:
+      - bmats
+      - emats
+      - refined_materials
+    production_process: null
+    user_config: null
+```
+
+### JSON Format
+Similar structure as YAML but in JSON format for programmatic access.
+
+## Integration with Existing Systems
+
+### Graph Classes
+- Uses existing `InventoryGraph`, `InventoryNode` classes
+- Leverages `ProductionNode` hierarchy (`FactoryNode`, `MassProductionFactoryNode`, etc.)
+- Maintains compatibility with `FacilityNode` and `BaseType` enums
+- No parallel graph structure - integrates directly with existing code
+
+### Production Processes
+- References `PRODUCTION_PROCESS_MAP` for valid production types
+- Supports all facility types and process types from game data
+- Maintains consistency with existing order and inventory systems
+
+### Serialization
+- Human-readable YAML/JSON format
+- Preserves all node attributes and metadata
+- Supports full round-trip save/load
+- Compatible with existing graph validation logic
+
+## Command Line Usage
+
+```bash
+# Interactive onboarding wizard
+python3 onboard_network.py
+
+# Load and display existing network
+python3 onboard_network.py --load network.yaml
+python3 onboard_network.py --status network.json
+
+# Help
+python3 onboard_network.py --help
+```
+
+## Example Networks
+
+### Simple Production Chain
+```
+Refinery → Factory → Depot
+```
+
+### Complex Multi-Facility Network
+```
+Refinery → MPF → Depot
+     ↓      ↓      ↓
+  Factory → → → Seaport
+```
+
+### Demo Network
+Run `python3 create_demo_network.py` to generate a complete example network with:
+- 1 MPF (Westgate)
+- 1 Refinery (Heartlands) 
+- 1 Factory (Deadlands) - marked as frontline
+- 1 Storage Depot (Westgate)
+- 1 Seaport (Fisherman's Row)
+- 6 connections showing material flow
+
+## Testing and Validation
+
+### Running Tests
+```bash
+python3 -m pytest test_onboard_network.py -v
+```
+
+### Test Coverage
+- Node creation and type preservation
+- Network serialization/deserialization
+- YAML/JSON round-trip compatibility
+- Graph integration and validation
+- Error handling and edge cases
+
+## Future Enhancements
+
+- War API integration for auto-discovery of facilities
+- Template networks for common scenarios
+- Validation rules for logical connections
+- Integration with Discord bot commands
+- Automated network optimization suggestions
+
+---
+
+## Legacy Documentation (Discord Bot Workflow)
+
 The following below includes an example exchange for a new war.
 
 --Start of onboarding--
