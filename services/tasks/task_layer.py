@@ -24,6 +24,7 @@ class Priority:
             "inventory": -0.5,              # Surplus inventory (negative weight)
             "status": 2.0,                  # Node status (critical=2, low=1, ok=0)
             "distance": -0.2,               # Distance to fulfill (negative weight)
+            "transport_time": -0.3,         # Transportation time (negative weight - shorter is better)
             "fluid_dynamics": 1.5,          # Fluid dynamics priority signal
             # Add more signals as needed
         }
@@ -147,6 +148,10 @@ class TaskGenerator:
                                 "status": self.status_to_signal(node.status),
                                 # "distance": self.compute_distance(source_node, node), # Placeholder for future
                             }
+                            # Add transport_time signal if available
+                            if edge.has_transport_time():
+                                signals["transport_time"] = edge.get_transport_time()
+                            
                             task = TransportationTask(source=source_node, destination=node, item=item, quantity=qty, signals=signals, fluid_calc=self.fluid_calc)
                             tasks.append(task)
                             # Add task to fluid dynamics calculator for dependency tracking

@@ -55,12 +55,14 @@ class InventoryEdge:
     def __init__(self, source: 'InventoryNode', target: 'InventoryNode',
                  allowed_items: Optional[List[str]] = None,
                  production_process: Optional[str] = None,
-                 user_config: Optional[Dict[str, Any]] = None):
+                 user_config: Optional[Dict[str, Any]] = None,
+                 transport_time: Optional[float] = None):
         self.source = source
         self.target = target
         self.allowed_items = allowed_items or []
         self.production_process = production_process
         self.user_config = user_config or {}
+        self.transport_time = transport_time  # Time in hours to transport items via this edge
         self.orders: List[Order] = []  # List of Order objects attached to this edge
 
     def add_order(self, order: Order):
@@ -73,6 +75,28 @@ class InventoryEdge:
     def get_orders(self) -> List[Order]:
         return self.orders
 
+    def set_transport_time(self, time_hours: Optional[float]) -> None:
+        """
+        Set transportation time for this edge.
+        
+        Args:
+            time_hours: Time in hours to transport items via this edge, or None to disable
+        """
+        self.transport_time = time_hours
+
+    def get_transport_time(self) -> Optional[float]:
+        """
+        Get transportation time for this edge.
+        
+        Returns:
+            Transportation time in hours, or None if not set
+        """
+        return self.transport_time
+
+    def has_transport_time(self) -> bool:
+        """Check if this edge has a transport time configured."""
+        return self.transport_time is not None
+
 class InventoryGraph:
     def __init__(self):
         self.nodes: Dict[str, InventoryNode] = {}
@@ -84,10 +108,11 @@ class InventoryGraph:
     def add_edge(self, source_id: str, target_id: str,
                  allowed_items: Optional[List[str]] = None,
                  production_process: Optional[str] = None,
-                 user_config: Optional[Dict[str, Any]] = None):
+                 user_config: Optional[Dict[str, Any]] = None,
+                 transport_time: Optional[float] = None):
         source = self.nodes[source_id]
         target = self.nodes[target_id]
-        edge = InventoryEdge(source, target, allowed_items, production_process, user_config)
+        edge = InventoryEdge(source, target, allowed_items, production_process, user_config, transport_time)
         self.edges.append(edge)
         source.add_edge(edge)
 
@@ -157,7 +182,8 @@ class InventoryGraph:
             if node.metadata:
                 print(f"  Metadata: {node.metadata}")
             for edge in node.edges:
-                print(f"    -> {edge.target.node_id} ({edge.target.location_name}) | Allowed: {edge.allowed_items} | Production: {edge.production_process} | User Config: {edge.user_config}")
+                transport_info = f" | Transport Time: {edge.transport_time}h" if edge.transport_time is not None else ""
+                print(f"    -> {edge.target.node_id} ({edge.target.location_name}) | Allowed: {edge.allowed_items} | Production: {edge.production_process}{transport_info} | User Config: {edge.user_config}")
         print("")
 
 
