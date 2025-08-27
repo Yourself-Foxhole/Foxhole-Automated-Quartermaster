@@ -1,17 +1,19 @@
-"""
-Data models for the Streamlit logistics prototype.
+"""Data models for the Streamlit logistics prototype.
+
 Contains sample Foxhole game data and data structures for the prototype.
 """
-from typing import Dict, List, Optional, Set
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Dict, List, Optional
+
 import networkx as nx
 
 
 class ItemType(Enum):
     """Types of items in Foxhole."""
+
     MATERIAL = "material"
-    AMMUNITION = "ammunition" 
+    AMMUNITION = "ammunition"
     MEDICAL = "medical"
     EQUIPMENT = "equipment"
     FUEL = "fuel"
@@ -20,6 +22,7 @@ class ItemType(Enum):
 
 class FacilityType(Enum):
     """Types of facilities in Foxhole."""
+
     FACTORY = "factory"
     REFINERY = "refinery"
     SEAPORT = "seaport"
@@ -35,10 +38,11 @@ class FacilityType(Enum):
 @dataclass
 class Item:
     """Represents an item in the Foxhole logistics system."""
+
     name: str
     item_type: ItemType
     description: str = ""
-    
+
     def __str__(self) -> str:
         return self.name
 

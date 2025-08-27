@@ -560,7 +560,13 @@ def display_inventory_upload():
 
 def generate_mock_ocr_results() -> Dict[str, Any]:
     """Generate mock OCR parsing results for demonstration."""
-    locations = [loc.name for loc in st.session_state.locations]
+    # Use session state locations if available, otherwise use sample locations
+    try:
+        locations = [loc.name for loc in st.session_state.locations]
+    except (AttributeError, KeyError):
+        # Fallback for testing or when running outside streamlit context
+        locations = [loc.name for loc in SAMPLE_LOCATIONS]
+    
     selected_location = random.choice(locations)
     
     # Generate random items and quantities
