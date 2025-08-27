@@ -10,7 +10,7 @@ This script demonstrates how the implemented order system works:
 """
 import sys
 import os
-sys.path.append(os.path.abspath('.'))
+sys.path.append(os.path.abspath('../..'))
 
 from services.inventory.inventory_graph import InventoryGraph, InventoryNode
 from services.inventory.order import OrderManager, OrderType, OrderStatus

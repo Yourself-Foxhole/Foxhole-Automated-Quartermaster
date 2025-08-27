@@ -18,8 +18,10 @@ from presentation import EmbedRenderer
 # Import existing services
 from services.tasks.task import Task, TaskStatus
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 
-class FoxholeBot(commands.Bot):
+
+class FoxholeBot(commands.InteractionBot):
     """
     Foxhole Automated Quartermaster Discord Bot with presentation layer integration.
     
@@ -33,10 +35,13 @@ class FoxholeBot(commands.Bot):
         # Add command_sync_flags if not present
         if 'command_sync_flags' not in kwargs:
             kwargs['command_sync_flags'] = CommandSyncFlags.default()
+        # Ensure no command prefix and no message content intent
+        kwargs['intents'] = disnake.Intents.default()
         super().__init__(*args, **kwargs)
         self.embed_renderer = EmbedRenderer()
         self.logger = logging.getLogger(__name__)
-    
+        logging.info("Initializing FoxholeBot...")
+
     async def on_ready(self):
         """Called when the bot is ready."""
         self.logger.info("Bot %s is ready!", self.user)
@@ -191,6 +196,30 @@ class FoxholeBot(commands.Bot):
             )
             await inter.followup.send(embed=error_embed)
     
+    @commands.slash_command(name="onboard_network", description="Onboard a new logistics network node")
+    async def onboard_network(self, inter: disnake.ApplicationCommandInteraction,
+                             node_name: str = commands.Param(description="Name of the network node"),
+                             location: str = commands.Param(description="Location of the node"),
+                             type: str = commands.Param(default="depot", choices=["depot", "factory", "frontline"], description="Type of node")):
+        """
+        Onboard a new logistics network node.
+        Args:
+            inter: Discord interaction object.
+            node_name: Name of the network node.
+            location: Location of the node.
+            type: Type of node (depot, factory, frontline).
+        """
+        await inter.response.defer()
+        # Mock persistence logic – replace with DB logic if needed
+        embed = disnake.Embed(
+            title="✅ Network Node Onboarded",
+            description=f"Node **{node_name}** has been onboarded.",
+            color=0x00ff00
+        )
+        embed.add_field(name="Location", value=location, inline=True)
+        embed.add_field(name="Type", value=type, inline=True)
+        await inter.followup.send(embed=embed)
+
     def _get_mock_task(self, task_id: str) -> Optional[Task]:
         """
         Get a mock task for demonstration purposes.
@@ -268,11 +297,8 @@ def create_bot(token: str) -> FoxholeBot:
     Returns:
         Configured FoxholeBot instance.
     """
-    bot = FoxholeBot(
-        command_prefix="!",
-        intents=intents
-    )
-    
+    bot = FoxholeBot()
+
     return bot
 
 
