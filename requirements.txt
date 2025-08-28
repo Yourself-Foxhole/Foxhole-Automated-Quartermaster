@@ -10,6 +10,12 @@ pydantic==2.10.0 # Version 2.10.0 or earlier required by safety==3.6.0
 # Database
 peewee==3.18.2
 
+# Streamlit and Google Sheets Integration
+streamlit>=1.22.0
+st-gsheets-connection>=0.0.6
+pandas>=1.5.0
+plotly>=5.15.0
+
 # Testing
 pytest==8.4.1
 pytest-asyncio==1.1.0

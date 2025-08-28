@@ -25,6 +25,14 @@ from data_models import (
     Item, Location, InventoryState, ItemType, FacilityType
 )
 
+# Import Google Sheets integration
+from gsheets_backend import get_gsheets_backend
+from gsheets_config import get_gsheets_config
+from gsheets_ui import (
+    show_connection_status, show_configuration_help, show_data_management_panel,
+    show_sync_indicator, auto_save_data, load_data_on_startup, show_sheets_analytics
+)
+
 # Import existing task system components
 import sys
 import os
@@ -102,6 +110,10 @@ st.markdown("""
 
 def initialize_session_state():
     """Initialize session state variables."""
+    # Load data from Google Sheets if available
+    load_data_on_startup()
+    
+    # Fallback to sample data if not loaded from sheets
     if 'locations' not in st.session_state:
         st.session_state.locations = SAMPLE_LOCATIONS.copy()
     if 'logistics_graph' not in st.session_state:
@@ -489,10 +501,21 @@ def display_task_management():
                 if task.status == TaskStatus.PENDING:
                     if st.button("Claim", key="claim_{}".format(task.task_id)):
                         task.status = TaskStatus.IN_PROGRESS
+                        task.assigned_to = "Current User"  # In real app, get from auth
+                        task.updated_at = datetime.now()
+                        # Log task claim
+                        backend = get_gsheets_backend()
+                        backend.log_analytics_metric("task_claimed", 1, {"task_id": task.task_id})
+                        auto_save_data()
                         st.rerun()
                 elif task.status == TaskStatus.IN_PROGRESS:
                     if st.button("Complete", key="complete_{}".format(task.task_id)):
                         task.status = TaskStatus.COMPLETED
+                        task.updated_at = datetime.now()
+                        # Log task completion
+                        backend = get_gsheets_backend()
+                        backend.log_analytics_metric("task_completed", 1, {"task_id": task.task_id})
+                        auto_save_data()
                         st.rerun()
                 else:
                     st.write("✅ Done")
@@ -552,7 +575,15 @@ def display_inventory_upload():
                                 if item:
                                     location.add_inventory(item, quantity)
                             
+                            # Log inventory update
+                            backend = get_gsheets_backend()
+                            backend.log_analytics_metric("inventory_upload", 1, {
+                                "location": location_name,
+                                "items_count": len(mock_results['items'])
+                            })
+                            
                             st.success("Inventory updated for {}!".format(location_name))
+                            auto_save_data()
                             st.rerun()
                         else:
                             st.error("Location {} not found!".format(location_name))
@@ -678,8 +709,12 @@ def main():
     
     page = st.sidebar.selectbox(
         "Navigate",
-        ["🗺️ Logistics Network", "📋 Task Management", "📸 Inventory Upload", "📈 Analytics"]
+        ["🗺️ Logistics Network", "📋 Task Management", "📸 Inventory Upload", "📈 Analytics", "📊 Google Sheets Analytics"]
     )
+    
+    # Google Sheets connection status and controls
+    show_connection_status()
+    show_data_management_panel()
     
     # Display current war information (mock)
     st.sidebar.markdown("### 🌐 War Status")
@@ -690,14 +725,25 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔧 Quick Actions")
     if st.sidebar.button("🔄 Refresh Data"):
+        # Auto-save before refresh if enabled
+        auto_save_data()
         st.rerun()
     
     if st.sidebar.button("📊 Generate Report"):
         st.sidebar.success("Report generated!")
+        # Log analytics
+        backend = get_gsheets_backend()
+        backend.log_analytics_metric("report_generated", 1)
+    
+    # Show configuration help if needed
+    show_configuration_help()
     
     # Main content area
     if page == "🗺️ Logistics Network":
         st.title("🗺️ Foxhole Logistics Network")
+        
+        # Show sync indicator
+        show_sync_indicator()
         
         # Graph visualization
         col1, col2 = st.columns([2, 1])
@@ -754,13 +800,23 @@ def main():
                     st.write("- {}: {}".format(facility_type.replace('_', ' ').title(), count))
     
     elif page == "📋 Task Management":
+        show_sync_indicator()
         display_task_management()
+        # Auto-save tasks after operations
+        auto_save_data()
     
     elif page == "📸 Inventory Upload":
+        show_sync_indicator()
         display_inventory_upload()
+        # Auto-save inventory after uploads
+        auto_save_data()
     
     elif page == "📈 Analytics":
+        show_sync_indicator()
         display_analytics()
+    
+    elif page == "📊 Google Sheets Analytics":
+        show_sheets_analytics()
 
 
 if __name__ == "__main__":
