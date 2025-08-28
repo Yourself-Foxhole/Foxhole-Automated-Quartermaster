@@ -16,16 +16,12 @@ class TaskStatus(Enum):
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     FAILED = "failed"
-    CANCELLED = "cancelled"
     QUEUED = "queued"
 
 
 @dataclass
 class Task:
     """Represents a task in the logistics system.
-    Tasks can be production, transport, or supply tasks that may be blocked by upstream dependencies.
-    """
-    Represents a task in the logistics system.
     
     Tasks can be production, transport, or supply tasks that may be blocked
     by upstream dependencies. Tasks can now also be driven by associated orders.
