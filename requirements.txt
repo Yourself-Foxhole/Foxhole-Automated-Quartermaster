@@ -33,7 +33,7 @@ networkx==3.5
 requests==2.32.4
 
 # Foxhole War API wrapper
-FoxAPI @ file://./dependencies/FoxAPI
+foxapi>=1.7.1
 # Code Quality
 ruff==0.12.8
 safety==3.6.0

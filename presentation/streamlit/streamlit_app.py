@@ -16,6 +16,7 @@ import networkx as nx
 import pandas as pd
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
+from dataclasses import asdict
 import io
 import random
 
@@ -32,6 +33,9 @@ from gsheets_ui import (
     show_connection_status, show_configuration_help, show_data_management_panel,
     show_sync_indicator, auto_save_data, load_data_on_startup, show_sheets_analytics
 )
+
+# Import FoxAPI integration
+from foxapi_adapter import get_foxapi_adapter
 
 # Import existing task system components
 import sys
@@ -697,6 +701,237 @@ def display_analytics():
         st.plotly_chart(fig_pie, use_container_width=True)
 
 
+def display_war_status():
+    """Display comprehensive war status information using FoxAPI."""
+    
+    st.title("🌐 Foxhole War Status")
+    st.markdown("Real-time war information from the Foxhole API")
+    
+    # Get FoxAPI adapter
+    adapter = get_foxapi_adapter()
+    
+    # Main war status section
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("📊 Current War Information")
+        
+        # Get war status with refresh button
+        col_refresh, col_cache = st.columns([1, 3])
+        with col_refresh:
+            if st.button("🔄 Refresh", help="Refresh data from Foxhole API"):
+                adapter.clear_cache()
+                st.rerun()
+        
+        with col_cache:
+            cache_status = adapter.get_cache_status()
+            if cache_status['api_available']:
+                if cache_status['war_cache_valid']:
+                    cache_age = cache_status.get('war_cache_age', 0)
+                    st.caption(f"🟢 Live data (cached {cache_age}s ago)")
+                else:
+                    st.caption("🟡 Fetching fresh data...")
+            else:
+                st.caption("🔴 FoxAPI unavailable - showing fallback data")
+        
+        # War status data
+        war_status = adapter.get_war_status()
+        
+        # War overview metrics
+        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+        
+        with metric_col1:
+            st.metric(
+                label="War Number",
+                value=f"#{war_status.war_number}",
+                help="Current war number"
+            )
+        
+        with metric_col2:
+            st.metric(
+                label="Phase",
+                value=war_status.phase,
+                help="Current war phase"
+            )
+        
+        with metric_col3:
+            duration_label = "Duration"
+            if war_status.duration_days > 0:
+                duration_value = f"{war_status.duration_days} days"
+            else:
+                duration_value = "N/A"
+                duration_label = "Status"
+                
+            st.metric(
+                label=duration_label,
+                value=duration_value,
+                help="Time since war started"
+            )
+        
+        with metric_col4:
+            st.metric(
+                label="Active Regions",
+                value=war_status.active_regions,
+                help="Number of active map regions"
+            )
+    
+    with col2:
+        st.subheader("🔧 API Status")
+        
+        # Cache and API status
+        cache_status = adapter.get_cache_status()
+        
+        status_items = [
+            ("FoxAPI Installed", cache_status['foxapi_installed'], "Library is available"),
+            ("API Connection", cache_status['api_available'], "Can connect to Foxhole API"),
+            ("War Data Cache", cache_status['war_cache_valid'], "War data is cached and fresh"),
+            ("Maps Data Cache", cache_status['maps_cache_valid'], "Maps data is cached and fresh"),
+        ]
+        
+        for label, status, help_text in status_items:
+            status_icon = "🟢" if status else "🔴"
+            st.write(f"{status_icon} **{label}**")
+            st.caption(help_text)
+    
+    # Detailed war information
+    st.subheader("📋 Detailed War Information")
+    
+    # Create tabs for different information sections
+    tab1, tab2, tab3 = st.tabs(["War Details", "Map Information", "Technical Info"])
+    
+    with tab1:
+        st.write("### War Configuration")
+        
+        detail_col1, detail_col2 = st.columns(2)
+        
+        with detail_col1:
+            st.write(f"**War ID:** `{war_status.war_id}`")
+            st.write(f"**War Number:** {war_status.war_number}")
+            st.write(f"**Current Phase:** {war_status.phase}")
+            if war_status.winner:
+                st.write(f"**Winner:** {war_status.winner}")
+        
+        with detail_col2:
+            st.write(f"**Required Victory Towns:** {war_status.required_victory_towns}")
+            st.write(f"**Short Victory Towns:** {war_status.short_required_victory_towns}")
+            if war_status.conquest_start_time:
+                st.write(f"**Conquest Started:** {war_status.conquest_start_time}")
+            if war_status.resistance_start_time:
+                st.write(f"**Resistance Started:** {war_status.resistance_start_time}")
+        
+        # War timeline visualization
+        if war_status.conquest_start_time or war_status.resistance_start_time:
+            st.write("### War Timeline")
+            
+            timeline_data = []
+            if war_status.conquest_start_time:
+                timeline_data.append({
+                    'Event': 'Conquest Phase Started',
+                    'Timestamp': war_status.conquest_start_time,
+                    'Type': 'Start'
+                })
+            if war_status.resistance_start_time:
+                timeline_data.append({
+                    'Event': 'Resistance Phase Started', 
+                    'Timestamp': war_status.resistance_start_time,
+                    'Type': 'Phase Change'
+                })
+            if war_status.conquest_end_time:
+                timeline_data.append({
+                    'Event': 'War Ended',
+                    'Timestamp': war_status.conquest_end_time,
+                    'Type': 'End'
+                })
+            
+            if timeline_data:
+                df_timeline = pd.DataFrame(timeline_data)
+                st.dataframe(df_timeline, use_container_width=True)
+    
+    with tab2:
+        st.write("### Active Map Regions")
+        
+        maps_data = adapter.get_maps()
+        
+        map_col1, map_col2 = st.columns([2, 1])
+        
+        with map_col1:
+            if maps_data.maps:
+                # Create a nice grid display of maps
+                st.write(f"**Total Maps:** {maps_data.total_maps}")
+                
+                # Display maps in a grid
+                maps_per_row = 3
+                for i in range(0, len(maps_data.maps), maps_per_row):
+                    cols = st.columns(maps_per_row)
+                    for j, col in enumerate(cols):
+                        if i + j < len(maps_data.maps):
+                            map_name = maps_data.maps[i + j]
+                            # Clean up the hex name for display
+                            display_name = map_name.replace('Hex', '').replace('_', ' ')
+                            col.write(f"🗺️ **{display_name}**")
+                            col.caption(f"`{map_name}`")
+            else:
+                st.write("No map data available")
+        
+        with map_col2:
+            st.write("**Map Data Status:**")
+            st.write(f"📊 Data Source: {maps_data.data_source}")
+            st.write(f"⏰ Last Updated: {maps_data.last_updated[:16].replace('T', ' ')}")
+            
+            if maps_data.data_source == "foxapi":
+                st.success("✅ Live map data")
+            else:
+                st.warning("⚠️ Using mock data")
+    
+    with tab3:
+        st.write("### Technical Information")
+        
+        tech_col1, tech_col2 = st.columns(2)
+        
+        with tech_col1:
+            st.write("**Data Sources:**")
+            st.write(f"- War Status: `{war_status.data_source}`")
+            st.write(f"- Maps Data: `{maps_data.data_source}`")
+            st.write(f"- Last War Update: `{war_status.last_updated}`")
+            st.write(f"- Last Maps Update: `{maps_data.last_updated}`")
+        
+        with tech_col2:
+            st.write("**Cache Information:**")
+            if 'war_cache_age' in cache_status:
+                st.write(f"- War Cache Age: {cache_status['war_cache_age']}s")
+            if 'maps_cache_age' in cache_status:
+                st.write(f"- Maps Cache Age: {cache_status['maps_cache_age']}s")
+            st.write(f"- Cache Duration: 300s (5 minutes)")
+        
+        # Raw data expander for debugging
+        with st.expander("🔍 Raw API Data (Debug)"):
+            st.write("**War Status Object:**")
+            st.json(asdict(war_status))
+            
+            st.write("**Maps Object:**")
+            st.json(asdict(maps_data))
+            
+            st.write("**Cache Status:**")
+            st.json(cache_status)
+    
+    # Help section
+    st.subheader("ℹ️ About War Status")
+    st.info("""
+    This page displays live war information from the Foxhole game servers using the FoxAPI library.
+    
+    **War Phases:**
+    - **Pre-War:** War is scheduled but not yet started
+    - **Conquest Phase:** Active combat phase where territories can be captured
+    - **Resistance Phase:** Final phase with asymmetric gameplay
+    - **War Ended:** War has concluded with a winner
+    
+    **Data Updates:**
+    - Data is cached for 5 minutes to avoid overloading game servers
+    - Use the "Refresh" button to force fetch new data
+    - If FoxAPI is unavailable, fallback mock data is shown
+    """)
+
+
 def main():
     """Main Streamlit application."""
     
@@ -709,18 +944,42 @@ def main():
     
     page = st.sidebar.selectbox(
         "Navigate",
-        ["🗺️ Logistics Network", "📋 Task Management", "📸 Inventory Upload", "📈 Analytics", "📊 Google Sheets Analytics"]
+        ["🗺️ Logistics Network", "📋 Task Management", "📸 Inventory Upload", "📈 Analytics", "🌐 War Status", "📊 Google Sheets Analytics"]
     )
     
     # Google Sheets connection status and controls
     show_connection_status()
     show_data_management_panel()
     
-    # Display current war information (mock)
+    # Display current war information (live via FoxAPI)
     st.sidebar.markdown("### 🌐 War Status")
-    st.sidebar.write("**War #105** - Resistance Phase")
-    st.sidebar.write("**Duration:** Day 23")
-    st.sidebar.write("**Active Regions:** 18")
+    
+    try:
+        adapter = get_foxapi_adapter()
+        war_status = adapter.get_war_status()
+        
+        if war_status.data_source == "foxapi":
+            # Live data from FoxAPI
+            st.sidebar.write(f"**War #{war_status.war_number}** - {war_status.phase}")
+            if war_status.duration_days > 0:
+                st.sidebar.write(f"**Duration:** Day {war_status.duration_days}")
+            st.sidebar.write(f"**Active Regions:** {war_status.active_regions}")
+            
+            # Show data freshness
+            st.sidebar.caption(f"🟢 Live data (updated: {war_status.last_updated[:16].replace('T', ' ')})")
+        else:
+            # Fallback to mock data
+            st.sidebar.write(f"**War #{war_status.war_number}** - {war_status.phase}")
+            st.sidebar.write(f"**Duration:** Day {war_status.duration_days}")
+            st.sidebar.write(f"**Active Regions:** {war_status.active_regions}")
+            st.sidebar.caption("🟡 Mock data (FoxAPI unavailable)")
+            
+    except Exception as e:
+        # Ultimate fallback
+        st.sidebar.write("**War #105** - Resistance Phase")
+        st.sidebar.write("**Duration:** Day 23")
+        st.sidebar.write("**Active Regions:** 18")
+        st.sidebar.caption("🔴 Fallback data (Error loading)")
     
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔧 Quick Actions")
@@ -814,6 +1073,10 @@ def main():
     elif page == "📈 Analytics":
         show_sync_indicator()
         display_analytics()
+    
+    elif page == "🌐 War Status":
+        show_sync_indicator()
+        display_war_status()
     
     elif page == "📊 Google Sheets Analytics":
         show_sheets_analytics()

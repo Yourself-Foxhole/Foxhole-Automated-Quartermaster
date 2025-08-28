@@ -33,6 +33,14 @@ The Streamlit logistics prototype provides an interactive web interface for the 
 - Low stock alerts and metrics
 - Capacity utilization tracking
 
+### 🌐 War Status (FoxAPI Integration)
+- Real-time war information from Foxhole game servers
+- Live war phase tracking (Conquest, Resistance, Pre-War, War Ended)
+- Active region counts and map information
+- War duration and progress metrics
+- Automatic fallback to cached/mock data when API unavailable
+- Comprehensive error handling and rate limiting compliance
+
 ## Architecture Integration
 
 The Streamlit prototype follows the 4-layer architecture defined in `docs/architecture.md`:
@@ -68,6 +76,7 @@ The Streamlit prototype follows the 4-layer architecture defined in `docs/archit
 - **NetworkX**: Graph data structure and algorithms
 - **Pandas**: Data manipulation for analytics
 - **st-gsheets-connection**: Google Sheets integration for persistent storage
+- **FoxAPI**: Real-time Foxhole war status and game data integration
 
 ### Data Models
 Located in `presentation/streamlit/data_models.py`:
@@ -83,10 +92,13 @@ Located in `presentation/streamlit/`:
 - `gsheets_ui.py`: UI components for connection status and data management
 
 ### Key Files
-- `streamlit_app.py`: Main application entry point with Google Sheets integration
+- `streamlit_app.py`: Main application entry point with Google Sheets and FoxAPI integration
 - `data_models.py`: Data structures and sample game data
+- `gsheets_backend.py`, `gsheets_config.py`, `gsheets_ui.py`: Google Sheets integration
+- `foxapi_adapter.py`: FoxAPI integration with caching and error handling
 - `test_streamlit_app.py`: Comprehensive test suite
 - `test_gsheets_integration.py`: Google Sheets integration tests
+- `test_foxapi_integration.py`: FoxAPI integration tests
 
 ## Repository Standards Compliance
 
@@ -174,16 +186,86 @@ python -m pytest tests/ -v
 - Clear error messages for configuration issues
 - Detailed connection status and diagnostics
 
+## FoxAPI Integration
+
+The prototype includes real-time war status integration using the [FoxAPI library](https://pypi.org/project/foxapi/) by [ThePhoenix78](https://github.com/ThePhoenix78/FoxAPI).
+
+### Key Files
+- `foxapi_adapter.py`: FoxAPI wrapper with caching and error handling
+- `test_foxapi_integration.py`: Comprehensive test suite for FoxAPI functionality
+
+### Features
+
+#### War Status Dashboard
+- **Real-time War Data**: Live information from Foxhole game servers
+- **War Phase Tracking**: Conquest, Resistance, Pre-War, War Ended phases  
+- **Duration Metrics**: Days since war started, phase transitions
+- **Map Information**: Active regions, total available maps
+- **Victory Conditions**: Required victory town counts
+
+#### Data Management
+- **Smart Caching**: 5-minute cache duration to respect API rate limits
+- **Automatic Fallback**: Graceful degradation to mock data when API unavailable
+- **Error Handling**: Robust error handling for network issues and API failures
+- **Cache Control**: Manual refresh and cache status indicators
+
+### Usage
+
+#### War Status Sidebar
+Real-time war information displayed in the sidebar:
+```
+🌐 War Status
+War #126 - War Ended  
+Active Regions: 43
+🟢 Live data (updated: 2024-01-15 14:30)
+```
+
+#### War Status Page  
+Comprehensive war information dashboard with:
+- War overview metrics (number, phase, duration, regions)
+- API connection status and cache information
+- Detailed war timeline and configuration
+- Active map regions grid display
+- Technical debugging information
+
+### Configuration
+
+No configuration required! The FoxAPI integration works out of the box:
+
+```python
+# Simple usage
+from foxapi_adapter import get_foxapi_adapter
+
+adapter = get_foxapi_adapter()
+war_status = adapter.get_war_status()
+print(f"War #{war_status.war_number} - {war_status.phase}")
+```
+
+### Data Sources
+- **Primary**: Live data from Foxhole game servers via FoxAPI
+- **Fallback**: Cached data (up to 5 minutes old)  
+- **Emergency**: Mock data when API unavailable
+
+### Error Resilience
+The integration handles various error conditions:
+- Network connectivity issues
+- FoxAPI server downtime
+- Rate limiting and API throttling
+- Invalid/malformed API responses
+- Missing dependency (FoxAPI not installed)
+
+All failures gracefully fall back to cached or mock data to ensure the application remains functional.
+
 ## Future Enhancements
 
 1. **Real OCR Integration**: Replace mock parsing with actual Foxhole Inventory Report processing
-2. **War API Integration**: Pull real-time game data from Foxhole War API  
-3. **Advanced Analytics**: Enhanced dashboards with trend analysis and predictions
-4. **Task Generation**: Integrate with existing graph processing and priority algorithms
-5. **User Authentication**: Add user management and role-based access
-6. **Real-time Updates**: WebSocket integration for live data updates
-7. **Mobile Optimization**: Responsive design for mobile logistics management
-8. **Multi-Sheet Support**: Support for multiple Google Sheets per user/clan
+2. **Advanced Analytics**: Enhanced dashboards with trend analysis and predictions
+3. **Task Generation**: Integrate with existing graph processing and priority algorithms
+4. **User Authentication**: Add user management and role-based access
+5. **Real-time Updates**: WebSocket integration for live data updates
+6. **Mobile Optimization**: Responsive design for mobile logistics management
+7. **Multi-Sheet Support**: Support for multiple Google Sheets per user/clan
+8. **Enhanced FoxAPI Features**: Add hexagon-specific data, casualty reports, and map visualizations
 
 ## Google Sheets Data Schema
 
