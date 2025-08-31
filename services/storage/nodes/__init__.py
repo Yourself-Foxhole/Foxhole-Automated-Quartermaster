@@ -12,8 +12,8 @@ from .production_node import PersistentProductionNode
 from .task_node import PersistentTaskNode
 
 __all__ = [
-    'PersistentBaseNode',
-    'PersistentInventoryNode',
-    'PersistentProductionNode',
-    'PersistentTaskNode'
+    "PersistentBaseNode",
+    "PersistentInventoryNode",
+    "PersistentProductionNode",
+    "PersistentTaskNode",
 ]
