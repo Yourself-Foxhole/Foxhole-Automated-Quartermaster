@@ -17,11 +17,12 @@ from disnake import CategoryChannel, Client, Intents, LoginFailure, Message, Tex
 from disnake.abc import GuildChannel
 
 
+
 class DiscordBot:
     """Interface for managing a Discord bot.
 
     DiscordBot provides methods for connection, event handling, messaging, and CRUD operations
-    for categories, channels, and threads.
+    for categories, channels, and threads. Allows registering external event handlers.
     """
 
     def __init__(self, token: str, intents: Optional[Intents] = None) -> None: # noqa: UP045
@@ -37,13 +38,26 @@ class DiscordBot:
         self.client = Client(intents=self.intents)
         self.connected = False
         self.logger = logging.getLogger("DiscordBot")
+        self._external_on_ready = None
+        self._external_on_message = None
         self._register_events()
 
+    def register_on_ready(self, handler):
+        """Register an external on_ready handler (called after internal logic)."""
+        self._external_on_ready = handler
+
+    def register_on_message(self, handler):
+        """Register an external on_message handler (called on message events)."""
+        self._external_on_message = handler
+
+
     def _register_events(self) -> None:
-        """Register Discord event handlers for on_ready, on_disconnect, and on_resumed."""
+        """Register Discord event handlers for on_ready, on_disconnect, on_resumed, and on_message."""
         @self.client.event
         async def on_ready() -> None:
             await self.on_ready()
+            if self._external_on_ready:
+                await self._external_on_ready()
 
         @self.client.event
         async def on_disconnect() -> None:
@@ -52,6 +66,11 @@ class DiscordBot:
         @self.client.event
         async def on_resumed() -> None:
             await self.on_resumed()
+
+        @self.client.event
+        async def on_message(message):
+            if self._external_on_message:
+                await self._external_on_message(message)
 
     # These methods were pulled out to enhance unit testing, but SonarQube is complaining about them
     # not being used directly. Adding NOSONAR to suppress the warning.

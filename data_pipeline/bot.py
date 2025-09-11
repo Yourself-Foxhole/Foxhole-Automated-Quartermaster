@@ -1,280 +1,279 @@
-"""
-Discord bot integration with the presentation layer.
+"""Discord bot integration with the presentation layer.
 
 This module shows how to integrate the EmbedRenderer with Discord bot commands.
 to send formatted messages using Jinja2 templates.
 """
 
 import logging
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime
 
 import disnake
-from disnake.ext import commands
-from disnake.ext.commands import CommandSyncFlags
 
-# Import the presentation layer
+from data.discord.discord import DiscordBot
 from presentation import EmbedRenderer
-# Import existing services
 from services.tasks.task import Task, TaskStatus
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+
+# Define Discord intents explicitly
+DEFAULT_INTENTS = disnake.Intents.default()
+# Uncomment the following if you need privileged intents:
+# DEFAULT_INTENTS.members = True
+# DEFAULT_INTENTS.message_content = True
+
+ERROR_TITLE = "❌ Error"
 
 
-class FoxholeBot(commands.InteractionBot):
-    """
-    Foxhole Automated Quartermaster Discord Bot with presentation layer integration.
-    
-    This bot shows how to use the EmbedRenderer to send formatted messages
-    for various logistics operations.
-    """
-    
-    def __init__(self, *args, **kwargs):
-        # Remove deprecated sync_commands if present
-        kwargs.pop('sync_commands', None)
-        # Add command_sync_flags if not present
-        if 'command_sync_flags' not in kwargs:
-            kwargs['command_sync_flags'] = CommandSyncFlags.default()
-        # Ensure no command prefix and no message content intent
-        kwargs['intents'] = disnake.Intents.default()
-        super().__init__(*args, **kwargs)
+class FoxholeBot:
+    """Foxhole Automated Quartermaster Discord Bot with presentation layer integration.
+
+    This bot uses DiscordBot for connection, event handling, and messaging,
+    and integrates the EmbedRenderer for logistics operations.
+    """  # noqa: E501, RUF100
+
+    def __init__(self, bot_token: str | None = None, intents: disnake.Intents = DEFAULT_INTENTS) -> None:
+        """Initialize the FoxholeBot with presentation layer integration.
+
+        Args:
+            bot_token: The Discord bot token.
+            intents: Discord Intents object.
+
+        """
+        self.token: str | None = bot_token
+        self.intents = intents
+        self.discord_bot = DiscordBot(token=bot_token, intents=intents)
         self.embed_renderer = EmbedRenderer()
         self.logger = logging.getLogger(__name__)
-        logging.info("Initializing FoxholeBot...")
+        self.logger.info("Initializing FoxholeBot...")
+        # Register event handlers
+        self.discord_bot.register_on_ready(self.on_ready)
+        self.discord_bot.register_on_message(self.on_message)
 
-    async def on_ready(self):
-        """Called when the bot is ready."""
-        self.logger.info("Bot %s is ready!", self.user)
-    
-    @commands.slash_command(name="task_status", description="Get status of a logistics task")
-    async def task_status(self, inter: disnake.ApplicationCommandInteraction, task_id: str):
-        """
-        Display the status of a logistics task using the presentation layer.
-        
+    def run(self) -> None:
+        """Start the Discord bot."""
+        self.discord_bot.run()
+
+    def shutdown(self) -> None:
+        """Shutdown the Discord bot."""
+        self.discord_bot.shutdown(None)
+
+    def is_connected(self) -> bool:
+        """Check if the bot is connected to Discord."""
+        return self.discord_bot.is_connected()
+
+    async def on_ready(self) -> None:
+        """Handle the event when the bot is ready and connected to Discord."""
+        await self.discord_bot.send_message(
+            self.discord_bot.get_default_channel_id(),
+            "FoxholeBot is online and ready!",
+        )
+        self.logger.info("Bot is ready! (user: %s)", getattr(self.discord_bot.client, "user", None))
+
+    async def on_message(self, message: disnake.Message) -> None:
+        """Handle incoming Discord messages and dispatch to appropriate command handlers.
+
         Args:
-            inter: Discord interaction object.
-            task_id: ID of the task to display.
+            message: The incoming Discord message object.
+
         """
-        await inter.response.defer()
-        
+        # Ignore messages from the bot itself
+        if message.author == getattr(self.discord_bot.client, "user", None):
+            return
+        content = message.content.strip()
+        if content.startswith("/task_status"):
+            await self._handle_task_status(message)
+        elif content.startswith("/inventory_update"):
+            await self._handle_inventory_update(message)
+        elif content.startswith("/alert"):
+            await self._handle_alert(message)
+        elif content.startswith("/onboard_network"):
+            await self._handle_onboard_network(message)
+
+    async def _handle_task_status(self, message):
+        parts = message.content.strip().split()
+        if len(parts) < 2:
+            await self.discord_bot.send_message(
+                message.channel.id,
+                "Usage: /task_status <task_id>",
+            )
+            return
+        task_id = parts[1]
         try:
-            # Mock task data for demonstration (in real implementation, this would come from the database)
             task = self._get_mock_task(task_id)
-            
-            if task is None:
+            if not task:
                 embed = disnake.Embed(
                     title="❌ Task Not Found",
                     description=f"No task found with ID: `{task_id}`",
-                    color=0xff0000
+                    color=0xff0000,
                 )
-                await inter.followup.send(embed=embed)
+                await self.discord_bot.send_message(
+                    message.channel.id,
+                    content="",
+                    embed=embed,
+                )
                 return
-            
-            # Use the presentation layer to render the task update
             embed = self.embed_renderer.render_task_update(task)
-            await inter.followup.send(embed=embed)
-            
-        except Exception as e:
+            await self.discord_bot.send_message(
+                message.channel.id,
+                content="",
+                embed=embed,
+            )
+        except (AttributeError, ValueError, TypeError) as e:
             self.logger.error("Error displaying task status: %s", e)
             error_embed = disnake.Embed(
                 title="❌ Error",
                 description="Failed to retrieve task status.",
-                color=0xff0000
+                color=0xff0000,
             )
-            await inter.followup.send(embed=error_embed)
-    
-    @commands.slash_command(name="inventory_update", description="Simulate an inventory delta")
-    async def inventory_update(self, inter: disnake.ApplicationCommandInteraction, 
-                             facility: str = "Reaching Trail Depot"):
-        """
-        Display a mock inventory delta using the presentation layer.
-        
-        Args:
-            inter: Discord interaction object.
-            facility: Name of the facility for the demo.
-        """
-        await inter.response.defer()
-        
+            await self.discord_bot.send_message(
+                message.channel.id,
+                content="",
+                embed=error_embed,
+            )
+
+    async def _handle_inventory_update(self, message):
+        parts = message.content.strip().split(maxsplit=1)
+        facility = parts[1] if len(parts) > 1 else "Reaching Trail Depot"
+        changes = {
+            "7.62mm": -150,
+            "40mm": +50,
+            "Bandages": +25,
+            "BMats": -200,
+            "Diesel": +100,
+        }
         try:
-            # Mock inventory changes for demonstration
-            changes = {
-                "7.62mm": -150,
-                "40mm": +50,
-                "Bandages": +25,
-                "BMats": -200,
-                "Diesel": +100
-            }
-            
             embed = self.embed_renderer.render_inventory_delta(
                 facility_name=facility,
                 changes=changes,
                 region="Deadlands",
                 critical_items=["7.62mm", "BMats"],
-                production_impact="Ammunition production may be affected"
+                production_impact="Ammunition production may be affected",
             )
-            
-            await inter.followup.send(embed=embed)
-            
-        except Exception as e:
+        except (AttributeError, ValueError, TypeError) as e:
             self.logger.error("Error displaying inventory update: %s", e)
             error_embed = disnake.Embed(
-                title="❌ Error",
+                title=ERROR_TITLE,
                 description="Failed to display inventory update.",
-                color=0xff0000
+                color=0xff0000,
             )
-            await inter.followup.send(embed=error_embed)
-    
-    @commands.slash_command(name="alert", description="Send a logistics alert")
-    async def send_alert(self, inter: disnake.ApplicationCommandInteraction,
-                        alert_type: str = commands.Param(choices=["critical", "warning", "info"]),
-                        message: str = "Critical supply shortage detected"):
-        """
-        Send a logistics alert using the presentation layer.
-        
-        Args:
-            inter: Discord interaction object.
-            alert_type: Type of alert to send.
-            message: Alert message content.
-        """
-        await inter.response.defer()
-        
+            await self.discord_bot.send_message(message.channel.id, embed=error_embed)
+            return
+        await self.discord_bot.send_message(message.channel.id, embed=embed)
+
+    async def _handle_alert(self, message):
+        # Example: /alert critical <message>
+        parts = message.content.strip().split(maxsplit=2)
+        alert_type = parts[1] if len(parts) > 1 else "critical"
+        alert_message = parts[2] if len(parts) > 2 else "Critical supply shortage detected"
         try:
-            # Generate alert based on type
-            if alert_type == "critical":
-                title = "Critical Supply Shortage"
-                kwargs = {
-                    "location": "Deadlands - Reaching Trail",
-                    "priority": "urgent",
-                    "affected_items": ["7.62mm", "40mm", "Bandages"],
-                    "supply_shortage": {"7.62mm": 500, "40mm": 200, "Bandages": 100},
-                    "recommended_actions": [
-                        "Immediate resupply from Westgate depot",
-                        "Redirect production from Safe House facility",
-                        "Request logi run from clan members"
-                    ],
-                    "frontline_impact": "Frontline operations in Deadlands may be compromised within 2 hours",
-                    "estimated_resolution": "45-60 minutes",
-                    "alert_id": "FAQ-2024-001"
-                }
-            elif alert_type == "warning":
-                title = "Low Stock Warning"
-                kwargs = {
-                    "location": "Westgate - Safe House Storage",
-                    "priority": "medium",
-                    "affected_items": ["Shirts", "BMats"],
-                    "recommended_actions": [
-                        "Monitor stock levels closely",
-                        "Schedule production run within 4 hours"
-                    ],
-                    "estimated_resolution": "2-3 hours",
-                    "alert_id": "FAQ-2024-002"
-                }
-            else:  # info
-                title = "Logistics Update"
-                kwargs = {
-                    "location": "Multiple Facilities",
-                    "priority": "low",
-                    "recommended_actions": ["Review daily production reports"],
-                    "alert_id": "FAQ-2024-003"
-                }
-            
+            title, kwargs = self._get_alert_details(alert_type)
+        except (KeyError, AttributeError, ValueError) as e:
+            self.logger.error("Error getting alert details: %s", e)
+            error_embed = disnake.Embed(
+                title=ERROR_TITLE,
+                description="Failed to get alert details.",
+                color=0xff0000,
+            )
+            await self.discord_bot.send_message(message.channel.id, embed=error_embed)
+            return
+
+        try:
             embed = self.embed_renderer.render_alert(
                 alert_title=title,
-                alert_message=message,
+                alert_message=alert_message,
                 alert_type=alert_type,
-                **kwargs
+                **kwargs,
             )
-            
-            await inter.followup.send(embed=embed)
-            
-        except Exception as e:
-            self.logger.error("Error sending alert: %s", e)
+    async def _handle_onboard_network(self, message):
+        # Example: /onboard_network <node_name> <location> <type>
+        parts = message.content.strip().split(maxsplit=3)
+            await self.discord_bot.send_message(
+                message.channel.id,
+                "Usage: /onboard_network <node_name> <location> [type]"
+            )
+            await self.discord_bot.send_message(message.channel.id, "Usage: /onboard_network <node_name> <location> [type]")
+            return
+        node_name = parts[1]
+        try:
+            embed = self.embed_renderer.render_alert(
+                alert_title=title,
+                alert_message=alert_message,
+                alert_type=alert_type,
+                **kwargs,
+            )
+            await self.discord_bot.send_message(message.channel.id, embed=embed)
+        except (AttributeError, ValueError, TypeError) as e:
+            self.logger.error("Error displaying alert: %s", e)
             error_embed = disnake.Embed(
-                title="❌ Error",
-                description="Failed to send alert.",
-                color=0xff0000
+                title=ERROR_TITLE,
+                description="Failed to display alert.",
+                color=0xff0000,
             )
-            await inter.followup.send(embed=error_embed)
-    
-    @commands.slash_command(name="onboard_network", description="Onboard a new logistics network node")
-    async def onboard_network(self, inter: disnake.ApplicationCommandInteraction,
-                             node_name: str = commands.Param(description="Name of the network node"),
-                             location: str = commands.Param(description="Location of the node"),
-                             type: str = commands.Param(default="depot", choices=["depot", "factory", "frontline"], description="Type of node")):
-        """
-        Onboard a new logistics network node.
-        Args:
-            inter: Discord interaction object.
-            node_name: Name of the network node.
-            location: Location of the node.
-            type: Type of node (depot, factory, frontline).
-        """
-        await inter.response.defer()
-        # Mock persistence logic – replace with DB logic if needed
-        embed = disnake.Embed(
-            title="✅ Network Node Onboarded",
-            description=f"Node **{node_name}** has been onboarded.",
-            color=0x00ff00
-        )
-        embed.add_field(name="Location", value=location, inline=True)
-        embed.add_field(name="Type", value=type, inline=True)
-        await inter.followup.send(embed=embed)
+            await self.discord_bot.send_message(message.channel.id, embed=error_embed)
 
-    def _get_mock_task(self, task_id: str) -> Optional[Task]:
-        """
-        Get a mock task for demonstration purposes.
-        
-        Args:
-            task_id: ID of the task to retrieve.
-            
-        Returns:
-            Mock Task object or None if not found.
-        """
-        # Mock task data based on task_id
-        mock_tasks = {
+    async def _handle_onboard_network(self, message):
+        # Example: /onboard_network <node_name> <location> <type>
+        parts = message.content.strip().split(maxsplit=3)
+        if len(parts) < 3:
+            await self.discord_bot.send_message(message.channel.id, "Usage: /onboard_network <node_name> <location> [type]")
+            return
+        node_name = parts[1]
+        location = parts[2]
+        node_type = parts[3] if len(parts) > 3 else "depot"
+        try:
+            embed = disnake.Embed(
+                title="✅ Network Node Onboarded",
+                description=f"Node **{node_name}** has been onboarded.",
+                color=0x00ff00,
+            )
+            embed.add_field(name="Location", value=location, inline=True)
+            embed.add_field(name="Type", value=node_type, inline=True)
+            await self.discord_bot.send_message(message.channel.id, embed=embed)
+        except (AttributeError, ValueError, TypeError, disnake.DiscordException, RuntimeError) as e:
+            self.logger.error("Error onboarding network node: %s", e)
+            error_embed = disnake.Embed(
+                title=ERROR_TITLE,
+                description="Failed to onboard network node.",
+                color=0xff0000,
+            )
+            await self.discord_bot.send_message(message.channel.id, embed=error_embed)
             "PROD-001": Task(
                 task_id="PROD-001",
                 name="Produce 7.62mm Ammunition",
                 task_type="production",
                 status=TaskStatus.IN_PROGRESS,
                 base_priority=2.5,
-                created_at=datetime(2024, 1, 15, 14, 30),
+                created_at=datetime(
+                    2024, 1, 15, 14, 30, tzinfo=UTC,
+                ),
                 metadata={
                     "target_quantity": 1000,
                     "current_progress": 650,
                     "facility": "Safe House Assembly",
-                    "estimated_completion": "45 minutes"
-                }
+                    "estimated_completion": "45 minutes",
+                },
             ),
             "TRANS-001": Task(
-                task_id="TRANS-001", 
+                task_id="TRANS-001",
                 name="Transport Supplies to Deadlands",
                 task_type="transport",
-                status=TaskStatus.BLOCKED,
-                base_priority=3.0,
-                created_at=datetime(2024, 1, 15, 13, 15),
+                created_at=datetime(
+                    2024, 1, 15, 13, 15, tzinfo=UTC,
+                ),
                 metadata={
                     "origin": "Westgate Depot",
                     "destination": "Reaching Trail Storage",
                     "cargo": "Mixed ammunition and medical supplies",
-                    "blocker": "Route contested — waiting for frontline stabilization"
-                }
+                    "blocker": (
+                        "Route contested — waiting for frontline stabilization"
+                    ),
+                },
             ),
-            "SUP-001": Task(
-                task_id="SUP-001",
-                name="Resupply Frontline Bunker Base",
-                task_type="supply",
-                status=TaskStatus.COMPLETED,
-                base_priority=4.0,
-                created_at=datetime(2024, 1, 15, 12, 0),
-                metadata={
-                    "location": "Deadlands FOB-7",
-                    "items_delivered": "500x 7.62mm, 200x 40mm, 100x Bandages",
-                    "completion_time": "2024-01-15 15:30"
-                }
-            )
         }
-        
+
         task = mock_tasks.get(task_id)
         if task and task.status == TaskStatus.BLOCKED:
             task.mark_blocked()
@@ -282,36 +281,59 @@ class FoxholeBot(commands.InteractionBot):
             # Add some order associations for the completed task
             task.add_order("ORD-123")
             task.add_order("ORD-124")
-        
+
         return task
 
 
 # Function to run the bot -- used by main.py or testing
-def create_bot(token: str) -> FoxholeBot:
-    """
-    Create and configure the Foxhole bot.
-    
+def create_bot(
+    bot_auth_token: str,
+    intents: disnake.Intents = DEFAULT_INTENTS,
+) -> FoxholeBot:
+    """Create and configure the Foxhole bot.
+
     Args:
-        token: Discord bot token.
-        
+        bot_auth_token: Discord bot token.
+        intents: Discord Intents object (default: DEFAULT_INTENTS)
+
     Returns:
         Configured FoxholeBot instance.
-    """
-    bot = FoxholeBot()
 
-    return bot
+    Raises:
+        ValueError: If the token is not provided or invalid.
+        TypeError: If the token is not a string.
+
+    """
+    # Define a common error message for token validation
+    token_error_msg = "A valid Discord bot token must be provided."  # nosec: B105 # noqa: S105, E501, RUF100 # pylint: disable=line-too-long
+    if not bot_auth_token:
+        msg = token_error_msg
+        raise ValueError(msg + " (None or empty)")
+    if not isinstance(bot_auth_token, str):
+        msg = token_error_msg
+        raise TypeError(msg + f" (got {type(bot_auth_token)})")
+    if len(bot_auth_token.strip()) == 0:
+        msg = token_error_msg
+        raise ValueError(msg + " (empty or whitespace)")
+
+    # Disnake's bot.run(token) expects the token at runtime, not in the constructor. # noqa: E501, RUF100 # pylint: disable=line-too-long
+    # We pass it to our constructor, which stores it for the run() call.
+    return FoxholeBot(bot_token=bot_auth_token, intents=intents)
 
 
 # Example usage
 if __name__ == "__main__":
     import os
+
     from dotenv import load_dotenv
-    
+
     load_dotenv()
-    
-    token = os.getenv("DISCORD_BOT_TOKEN")
-    if not token:
-        raise ValueError("DISCORD_BOT_TOKEN environment variable not set.")
-    
-    bot = create_bot(token)
-    bot.run(token)
+
+    env_bot_token = os.getenv("DISCORD_BOT_TOKEN")
+    if not env_bot_token:
+        MSG = "DISCORD_BOT_TOKEN environment variable not set."
+        raise ValueError(MSG)
+
+    # Use explicit intents
+    bot = create_bot(env_bot_token, intents=DEFAULT_INTENTS)
+    bot.run(env_bot_token)
