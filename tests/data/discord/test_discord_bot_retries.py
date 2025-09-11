@@ -174,12 +174,11 @@ def test_handle_reconnect_logger_raises(monkeypatch):
     monkeypatch.setenv("DISCORD_BOT_RETRY_DELAY", "0")
     bot = DiscordBot(token="dummy")
     # logger.error raises, should not break retry loop
-    class RaisingLogger:
+    class RaisingLogger:  # NOSONAR(S5603)
         # We don't need full methods inside a unit test, just stubs
-        def info(self, *a, **k): pass # NOSONAR
-        def error(self, *a, **k): raise Exception("log error") # NOSONAR
-        def exception(self, *a, **k): pass # NOSONAR
-    bot.logger = RaisingLogger()
+        def info(self, *a, **k): pass # NOSONAR(S112)
+        def error(self, *a, **k): raise Exception("log error") # NOSONAR(S112)
+        def exception(self, *a, **k): pass # NOSONAR(S112)
     bot.client.run = mock.Mock(side_effect=Exception("fail"))
     with pytest.raises(Exception):
         bot._handle_reconnect(Exception("fail"))
