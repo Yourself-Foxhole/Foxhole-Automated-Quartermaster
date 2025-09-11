@@ -1,0 +1,56 @@
+{
+  "title": "{% if alert_type == 'critical' %}🚨{% elif alert_type == 'warning' %}⚠️{% elif alert_type == 'info' %}ℹ️{% else %}📢{% endif %} {{ alert_title }}",
+  "description": "{{ alert_message }}",
+  "color": {% if alert_type == "critical" %}15158332{% elif alert_type == "warning" %}16776960{% elif alert_type == "info" %}3447003{% else %}6777215{% endif %},
+  "fields": [
+    {
+      "name": "🏷️ Alert Type",
+      "value": "{{ alert_type|title }}",
+      "inline": true
+    },
+    {
+      "name": "📍 Location",
+      "value": "{{ location if location else 'Multiple Locations' }}",
+      "inline": true
+    },
+    {
+      "name": "⏰ Priority",
+      "value": "{{ priority|title if priority else 'Normal' }}",
+      "inline": true
+    }{% if affected_items %},
+    {
+      "name": "📦 Affected Items",
+      "value": "{% for item in affected_items %}• {{ item }}{% if not loop.last %}\n{% endif %}{% endfor %}",
+      "inline": false
+    }{% endif %}{% if supply_shortage %},
+    {
+      "name": "📉 Supply Shortage",
+      "value": "{% for item, shortage in supply_shortage.items() %}**{{ item }}:** {{ shortage }} needed{% if not loop.last %}\n{% endif %}{% endfor %}",
+      "inline": false
+    }{% endif %}{% if recommended_actions %},
+    {
+      "name": "💡 Recommended Actions",
+      "value": "{% for action in recommended_actions %}{{ loop.index }}. {{ action }}{% if not loop.last %}\n{% endif %}{% endfor %}",
+      "inline": false
+    }{% endif %}{% if frontline_impact %},
+    {
+      "name": "⚔️ Frontline Impact", 
+      "value": "{{ frontline_impact }}",
+      "inline": false
+    }{% endif %}{% if estimated_resolution %},
+    {
+      "name": "⏱️ Estimated Resolution",
+      "value": "{{ estimated_resolution }}",
+      "inline": true
+    }{% endif %}{% if assigned_to %},
+    {
+      "name": "👤 Assigned To",
+      "value": "{{ assigned_to }}",
+      "inline": true
+    }{% endif %}
+  ],
+  "footer": {
+    "text": "Alert #{{ alert_id if alert_id else 'N/A' }} • Foxhole Automated Quartermaster"
+  },
+  "timestamp": "{{ timestamp.isoformat() if timestamp else 'now'|replace('now', '') }}"
+}

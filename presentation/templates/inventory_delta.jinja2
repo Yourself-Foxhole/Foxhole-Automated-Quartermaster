@@ -1,0 +1,46 @@
+{
+  "title": "📊 Inventory Delta - {{ facility_name }}",
+  "description": "Stockpile changes detected at {{ facility_name }}",
+  "color": {% if delta_type == "increase" %}3066993{% elif delta_type == "decrease" %}15158332{% else %}16776960{% endif %},
+  "fields": [
+    {
+      "name": "🏭 Facility",
+      "value": "{{ facility_name }}",
+      "inline": true
+    },
+    {
+      "name": "📅 Timestamp",
+      "value": "{{ timestamp.strftime('%H:%M UTC') }}",
+      "inline": true
+    },
+    {
+      "name": "📈 Change Type",
+      "value": "{{ delta_type|title }}",
+      "inline": true
+    }{% if changes %},
+    {
+      "name": "📦 Item Changes",
+      "value": "{% for item_name, change in changes.items() %}**{{ item_name }}:** {% if change > 0 %}+{{ change }}{% else %}{{ change }}{% endif %}{% if not loop.last %}\n{% endif %}{% endfor %}",
+      "inline": false
+    }{% endif %}{% if total_change %},
+    {
+      "name": "📊 Summary",
+      "value": "**Total Items Affected:** {{ changes|length }}\n**Net Change:** {% if total_change > 0 %}+{{ total_change }}{% else %}{{ total_change }}{% endif %} items",
+      "inline": false
+    }{% endif %}{% if critical_items %},
+    {
+      "name": "⚠️ Critical Items",
+      "value": "{{ critical_items|join(', ') }}",
+      "inline": false
+    }{% endif %}{% if production_impact %},
+    {
+      "name": "🏭 Production Impact",
+      "value": "{{ production_impact }}",
+      "inline": false
+    }{% endif %}
+  ],
+  "footer": {
+    "text": "Foxhole Automated Quartermaster • {{ region if region else 'Unknown Region' }}"
+  },
+  "timestamp": "{{ timestamp.isoformat() }}"
+}

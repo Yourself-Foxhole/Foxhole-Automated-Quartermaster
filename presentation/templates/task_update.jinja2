@@ -1,0 +1,55 @@
+{
+  "title": "📋 Task Update - {{ task.name }}",
+  "description": "{{ task.task_type|title }} task status update",
+  "color": {% if task.status.value == "completed" %}3066993
+  {% elif task.status.value == "in_progress" %}16776960
+  {% elif task.status.value == "blocked" %}15158332
+  {% else %}6777215{% endif %},
+  "fields": [
+    {
+      "name": "🏷️ Task ID", 
+      "value": "`{{ task.task_id }}`",
+      "inline": true
+    },
+    {
+      "name": "📊 Status", 
+      "value": "{{ task.status.value|replace('_', ' ')|title }}{% if task.status.value == 'blocked' and
+      task.blocked_since %} ({{ task.get_blocked_duration_hours()|round(1) }}h){% endif %}",
+      "inline": true
+    },
+    {
+      "name": "⚡ Priority",
+      "value": "{{ task.base_priority }}",
+      "inline": true
+    }
+    {% if task.upstream_dependencies or task.downstream_dependents %}
+    ,{
+      "name": "🔗 Dependencies",
+      "value": "{% if task.upstream_dependencies %}**Upstream:** {{ task.upstream_dependencies|list|join(', ') }}
+      {% endif %}{% if task.upstream_dependencies and task.downstream_dependents %}\n{% endif %}
+      {% if task.downstream_dependents %}**Downstream:** {{ task.downstream_dependents|list|join(', ') }}{% endif %}",
+      "inline": false
+    }
+    {% endif %}
+    {% if task.associated_orders %}
+    ,{
+      "name": "📦 Associated Orders",
+      "value": "{{ task.associated_orders|list|join(', ') }} ({{ task.get_order_count() }} total)",
+      "inline": false
+    }
+    {% endif %}
+    {% if task.metadata %}
+    ,{
+      "name": "📝 Details",
+      "value": "{% for key, value in task.metadata.items() %}**{{ key|title }}:** {{ value }}
+        {% if not loop.last %}\n{% endif %}{% endfor %}",
+      "inline": false
+    }
+    {% endif %}
+  ],
+  "footer": {
+    "text": "Created: {{ task.created_at.strftime('%Y-%m-%d %H:%M UTC') }}{% if task.blocked_since %} |
+    Blocked: {{ task.blocked_since.strftime('%Y-%m-%d %H:%M UTC') }}{% endif %}"
+  },
+  "timestamp": "{{ task.created_at.isoformat() }}"
+}

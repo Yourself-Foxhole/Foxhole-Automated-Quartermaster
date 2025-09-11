@@ -5,7 +5,7 @@ disnake==2.10.1
 # Type checking
 mypy==1.17.1
 pyright==1.1.403
-pydantic==2.10.0 # Version 2.10.0 or earlier required by safety==3.6.0
+pydantic==2.11.7
 
 # Database
 peewee==3.18.2
@@ -25,9 +25,9 @@ bandit==1.8.7
 loguru==0.7.3
 networkx==3.5
 requests==2.32.4
+jinja2==3.1.6
+foxapi==1.7.1
 
-# Foxhole War API wrapper
-FoxAPI @ file://./dependencies/FoxAPI
 # Code Quality
 ruff==0.12.8
 safety==3.6.0

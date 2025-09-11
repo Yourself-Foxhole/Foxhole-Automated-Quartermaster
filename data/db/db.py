@@ -14,7 +14,7 @@ from peewee import Model, CharField, IntegerField, DateTimeField, SqliteDatabase
 from peewee import TextField, FloatField
 
 # Database setup (adjust path as needed)
-db = SqliteDatabase('data/warapi/warapi_cache.db')
+db = SqliteDatabase("data/db/faq-bot.db")
 
 class BaseModel(Model):
     """Base Peewee model using the shared database connection."""
@@ -26,35 +26,35 @@ class War(BaseModel):
     war_id = IntegerField(primary_key=True)
     start_time = DateTimeField()
     resistance_phase = IntegerField()
-    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+    last_updated = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
 
 class Map(BaseModel):
     """Stores map codes and display names for all regions in the war."""
     name = CharField(primary_key=True)
     display_name = CharField()
-    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+    last_updated = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
 
 class WarReport(BaseModel):
     """Stores war report statistics for a given map, such as casualties and enlistments."""
     map_name = CharField()
     casualties = IntegerField()
     enlistments = IntegerField()
-    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+    last_updated = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
 
 class MapStatic(BaseModel):
-    """Stores static map data (e.g., structures, layout) as JSON for a given map."""
+    """Stores static map data (for example structures, layout) as JSON for a given map."""
     map_name = CharField(primary_key=True)
     data = CharField()  # JSON as string
-    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+    last_updated = DateTimeField(default=datetime.datetime(datetime.timezone.utc)
 
 class MapDynamic(BaseModel):
-    """Stores dynamic map data (e.g., real-time state) as JSON for a given map."""
+    """Stores dynamic map data (for example real-time state) as JSON for a given map."""
     map_name = CharField(primary_key=True)
     data = CharField()  # JSON as string
     last_updated = DateTimeField(default=datetime.datetime.utcnow)
 
 class Facility(BaseModel):
-    """Stores information about facilities (refineries, factories, etc.) in the network."""
+    """Stores information about facilities (refineries, factories, and others) in the network."""
     id = CharField(primary_key=True)
     map_name = CharField()
     type = CharField()  # e.g., Refinery, Factory, MPF, etc.
@@ -73,14 +73,14 @@ class Building(BaseModel):
     x = FloatField(null=True)
     y = FloatField(null=True)
     data = TextField(null=True)
-    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+    last_updated = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
 
 class Region(BaseModel):
     """Stores metadata and extra data for map regions/hexes."""
     name = CharField(primary_key=True)
     display_name = CharField()
     data = TextField(null=True)
-    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+    last_updated = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
 
 class Player(BaseModel):
     """Stores player information and stats for leaderboards and tracking."""
@@ -95,15 +95,15 @@ class Task(BaseModel):
     type = CharField()  # onboarding, alert, etc.
     status = CharField()  # open, closed, etc.
     data = TextField(null=True)
-    created_at = DateTimeField(default=datetime.datetime.utcnow)
-    updated_at = DateTimeField(default=datetime.datetime.utcnow)
+    created_at = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
+    updated_at = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
 
 class ProductionCalculationCache(BaseModel):
     """Stores cached production calculation results for a node and amount."""
     node_name = CharField()
     amount = FloatField()
     result_json = TextField()  # JSON string of calculation result
-    last_updated = DateTimeField(default=datetime.datetime.utcnow)
+    last_updated = DateTimeField(default=datetime.datetime(datetime.timezone.utc))
 
     class Meta:
         indexes = ((('node_name', 'amount'), True),)  # Unique constraint
