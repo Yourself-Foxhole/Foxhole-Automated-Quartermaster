@@ -18,7 +18,7 @@ def main():
     print("• Multiple blockages compound effects like multiple dams in series")
     print("• Priority = (Blocked_Weight × Time_Multiplier) + Base_Priority")
     print()
-    
+
     # Run the comprehensive demonstrations
     print("🔧 Running Core Algorithm Demo...")
     try:
@@ -29,7 +29,7 @@ def main():
     except Exception as e:
         print(f"❌ Error in core demo: {e}")
         return 1
-    
+
     print("\n" + "=" * 65)
     print("🔗 Running Graph Integration Demo...")
     try:
@@ -45,7 +45,7 @@ def main():
     except Exception as e:
         print(f"❌ Error in integration demo: {e}")
         return 1
-    
+
     print("\n" + "=" * 65)
     print("🧪 Running Test Suite...")
     try:
@@ -56,7 +56,7 @@ def main():
             "tests/test_graph_integration.py",
             "-v", "--tb=short", "-q"
         ], capture_output=True, text=True, cwd="/home/runner/work/Foxhole-Automated-Quartermaster/Foxhole-Automated-Quartermaster")
-        
+
         if result.returncode == 0:
             test_lines = result.stdout.strip().split('\n')
             passed_line = [line for line in test_lines if 'passed' in line and 'warning' in line]
@@ -71,7 +71,7 @@ def main():
     except Exception as e:
         print(f"❌ Error running tests: {e}")
         return 1
-    
+
     print("\n" + "=" * 65)
     print("📊 IMPLEMENTATION SUMMARY")
     print("=" * 65)
@@ -119,7 +119,7 @@ def main():
     print("=" * 65)
     print("🚀 READY FOR PRODUCTION USE! 🚀")
     print("=" * 65)
-    
+
     return 0
 
 if __name__ == "__main__":

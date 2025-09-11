@@ -22,7 +22,7 @@ class TaskStatus(Enum):
 @dataclass
 class Task:
     """Represents a task in the logistics system.
-    
+
     Tasks can be production, transport, or supply tasks that may be blocked
     by upstream dependencies. Tasks can now also be driven by associated orders.
     """
@@ -36,26 +36,26 @@ class Task:
     upstream_dependencies: Set[str] = field(default_factory=set)
     downstream_dependents: Set[str] = field(default_factory=set)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     # Order-related fields
     associated_orders: Set[str] = field(default_factory=set)  # Set of order IDs
-    
+
     def add_order(self, order_id: str) -> None:
         """Associate an order with this task."""
         self.associated_orders.add(order_id)
-    
+
     def remove_order(self, order_id: str) -> None:
         """Remove an order association from this task."""
         self.associated_orders.discard(order_id)
-    
+
     def has_orders(self) -> bool:
         """Check if this task has any associated orders."""
         return len(self.associated_orders) > 0
-    
+
     def get_order_count(self) -> int:
         """Get the number of orders associated with this task."""
         return len(self.associated_orders)
-    
+
     def mark_blocked(self) -> None:
         """Mark this task as blocked and record the time."""
         if self.status != TaskStatus.BLOCKED:
